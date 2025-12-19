@@ -1,4 +1,6 @@
-import { Minus, Plus, Trash2, ShoppingBag, X } from 'lucide-react';
+'use client';
+
+import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet';
 import { Separator } from './ui/separator';
@@ -28,21 +30,11 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
       <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
         {/* Header */}
         <div className="px-6 py-4 border-b bg-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl">Your Order</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {items.length} {items.length === 1 ? 'item' : 'items'}
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="rounded-full"
-            >
-              <X className="w-5 h-5" />
-            </Button>
+          <div>
+            <h2 className="text-2xl">Your Order</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {items.length} {items.length === 1 ? 'item' : 'items'}
+            </p>
           </div>
         </div>
 

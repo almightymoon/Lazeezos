@@ -1,3 +1,5 @@
+'use client';
+
 import { Bike, ShoppingBag, Store, Package, UtensilsCrossed } from 'lucide-react';
 import { Button } from './ui/button';
 
