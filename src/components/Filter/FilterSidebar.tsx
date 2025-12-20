@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import { Button } from './ui/button';
-import { Checkbox } from './ui/checkbox';
-import { Label } from './ui/label';
-import { Slider } from './ui/slider';
-import { Separator } from './ui/separator';
+import { Button } from '../ui/button';
+import { Checkbox } from '../ui/checkbox';
+import { Label } from '../ui/label';
+import { Slider } from '../ui/slider';
+import { Separator } from '../ui/separator';
 
 export interface FilterOptions {
   cuisines: string[];

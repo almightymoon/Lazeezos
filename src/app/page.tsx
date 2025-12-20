@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-import { Header } from './components/Header';
-import { FilterSidebar, FilterOptions } from './components/FilterSidebar';
-import { RestaurantCard, Restaurant } from './components/RestaurantCard';
-import { RestaurantMenu, MenuItem } from './components/RestaurantMenu';
-import { Cart, CartItem } from './components/Cart';
-import { Toaster } from './components/ui/sonner';
+import { Header } from '../components/Header';
+import { FilterSidebar, FilterOptions } from '../components/Filter';
+import { RestaurantCard, Restaurant } from '../components/Restaurant';
+import { RestaurantMenu, MenuItem } from '../components/Restaurant';
+import { Cart, CartItem } from '../components/Cart';
+import { Toaster } from '../components/ui/sonner';
 import { toast } from 'sonner';
 
 // Mock restaurant data

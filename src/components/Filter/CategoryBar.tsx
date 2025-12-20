@@ -1,7 +1,7 @@
 'use client';
 
 import { Bike, ShoppingBag, Store, Package, UtensilsCrossed } from 'lucide-react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 
 interface CategoryBarProps {
   selectedCategory: string;

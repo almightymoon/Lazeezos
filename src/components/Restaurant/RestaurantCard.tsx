@@ -1,9 +1,9 @@
 'use client';
 
 import { Star, Clock, DollarSign } from 'lucide-react';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
 
 export interface Restaurant {
   id: string;

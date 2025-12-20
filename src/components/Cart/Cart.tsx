@@ -1,11 +1,11 @@
 'use client';
 
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
-import { Button } from './ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from './ui/sheet';
-import { Separator } from './ui/separator';
-import { MenuItem } from './RestaurantMenu';
-import { ScrollArea } from './ui/scroll-area';
+import { Button } from '../ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
+import { Separator } from '../ui/separator';
+import { MenuItem } from '../Restaurant/RestaurantMenu';
+import { ScrollArea } from '../ui/scroll-area';
 
 export interface CartItem extends MenuItem {
   quantity: number;

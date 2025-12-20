@@ -1,10 +1,10 @@
 'use client';
 
 import { ArrowLeft, Plus, Star, Clock } from 'lucide-react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Badge } from './ui/badge';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { ImageWithFallback } from '../figma/ImageWithFallback';
 import { Restaurant } from './RestaurantCard';
 
 export interface MenuItem {
