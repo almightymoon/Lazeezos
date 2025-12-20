@@ -92,12 +92,16 @@ export default function PartnerLandingPage() {
                 Lazeezos
               </span>
             </Link>
-            <div className="flex items-center gap-6">
-              <Link href="#" className="hidden md:flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <span>Resources</span>
+            <div className="flex items-center gap-4">
+              <Link href="/partner/login">
+                <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
+                  Sign In
+                </Button>
               </Link>
-              <Link href="/partner/login" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <span>Login</span>
+              <Link href="/partner/signup">
+                <Button className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white">
+                  Sign Up
+                </Button>
               </Link>
             </div>
           </div>

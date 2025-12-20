@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, ShoppingCart, User, Bike, ShoppingBag, Store, Package, UtensilsCrossed, LogOut } from 'lucide-react';
+import { Search, MapPin, ShoppingCart, User, Bike, ShoppingBag, Store, Package, UtensilsCrossed, LogOut, Ticket, HelpCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -44,6 +44,7 @@ export function Header({
 }: HeaderProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Check localStorage for auth state on mount and listen for changes
   useEffect(() => {
@@ -85,7 +86,7 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
+    <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
       <div className="container mx-auto px-4">
         {/* Top Row */}
         <div className="flex items-center justify-between gap-4 py-3">
@@ -169,33 +170,52 @@ export function Header({
                     </span>
                   )}
                 </Button>
-                <DropdownMenu>
+                <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="hover:bg-gray-100 rounded-lg"
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-lg hover:bg-gray-100 h-10 w-10 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                      aria-label="User menu"
                     >
                       <User className="w-5 h-5 text-gray-600" />
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 z-[100]" sideOffset={8}>
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="flex items-center cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                      </Link>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/dashboard');
+                    }}>
+                      <ShoppingBag className="mr-2 h-4 w-4" />
+                      Orders
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/orders" className="flex items-center cursor-pointer">
-                        <ShoppingBag className="mr-2 h-4 w-4" />
-                        My Orders
-                      </Link>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/profile');
+                    }}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/vouchers');
+                    }}>
+                      <Ticket className="mr-2 h-4 w-4" />
+                      Voucher
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/help');
+                    }}>
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help Center
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 flex items-center">
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      handleLogout();
+                    }} className="text-red-600 focus:text-red-600 focus:bg-red-50">
                       <LogOut className="mr-2 h-4 w-4" />
                       Logout
                     </DropdownMenuItem>

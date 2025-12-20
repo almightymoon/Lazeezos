@@ -27,7 +27,7 @@ export default function LoginPage() {
     // Dispatch custom event to notify Header component
     window.dispatchEvent(new Event('loginStateChange'));
     toast.success('Signed in successfully!');
-    router.push('/');
+    router.push('/dashboard');
   };
 
   return (
