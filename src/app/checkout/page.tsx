@@ -48,6 +48,18 @@ interface Address {
   isDefault: boolean;
 }
 
+interface PaymentMethod {
+  id: string;
+  type: 'card' | 'wallet';
+  last4?: string;
+  brand?: string;
+  expiryMonth?: number;
+  expiryYear?: number;
+  walletName?: string;
+  phoneNumber?: string;
+  isDefault: boolean;
+}
+
 const mockAddresses: Address[] = [
   {
     id: '1',
@@ -71,14 +83,37 @@ const mockAddresses: Address[] = [
   },
 ];
 
+const mockPaymentMethods: PaymentMethod[] = [
+  {
+    id: '1',
+    type: 'card',
+    last4: '4242',
+    brand: 'Visa',
+    expiryMonth: 12,
+    expiryYear: 2025,
+    isDefault: true,
+  },
+  {
+    id: '2',
+    type: 'wallet',
+    walletName: 'JazzCash',
+    phoneNumber: '+92 300 1234567',
+    isDefault: false,
+  },
+];
+
 export default function CheckoutPage() {
   const router = useRouter();
   const [addresses, setAddresses] = useState<Address[]>(mockAddresses);
   const [selectedAddress, setSelectedAddress] = useState<string>(addresses.find(a => a.isDefault)?.id || '1');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet'>('cash');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+  const [paymentMethodType, setPaymentMethodType] = useState<'cash' | 'card' | 'wallet'>('cash');
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null);
   const [addressForm, setAddressForm] = useState<Omit<Address, 'id'>>({
     label: 'Home',
     street: '',
@@ -86,6 +121,10 @@ export default function CheckoutPage() {
     state: '',
     zipCode: '',
     phone: '',
+    isDefault: false,
+  });
+  const [paymentForm, setPaymentForm] = useState<{ type: 'card' | 'wallet'; cardNumber?: string; expiryMonth?: string; expiryYear?: string; cvv?: string; walletName?: string; phoneNumber?: string; isDefault: boolean }>({
+    type: 'card',
     isDefault: false,
   });
   const [cartItems] = useState<CartItem[]>([
@@ -118,6 +157,24 @@ export default function CheckoutPage() {
   const selectedAddressData = addresses.find(a => a.id === selectedAddress);
 
   const handlePlaceOrder = () => {
+    // Validation
+    if (!selectedAddress) {
+      toast.error('Please select a delivery address');
+      return;
+    }
+
+    if (paymentMethodType !== 'cash' && !selectedPaymentMethodId) {
+      toast.error('Please select a payment method');
+      return;
+    }
+
+    // Check if cart is empty
+    if (cartItems.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    // Place order
     toast.success('Order placed successfully!');
     router.push('/orders');
   };
@@ -195,6 +252,82 @@ export default function CheckoutPage() {
     }
 
     setIsAddressDialogOpen(false);
+  };
+
+  const handleAddPayment = (type: 'card' | 'wallet' = 'card') => {
+    setEditingPayment(null);
+    setPaymentForm({ type, isDefault: false });
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleEditPayment = (payment: PaymentMethod) => {
+    setEditingPayment(payment);
+    setPaymentForm({
+      type: payment.type,
+      isDefault: payment.isDefault,
+    });
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleSavePayment = () => {
+    if (paymentForm.type === 'card' && (!paymentForm.cardNumber || !paymentForm.expiryMonth || !paymentForm.expiryYear || !paymentForm.cvv)) {
+      toast.error('Please fill in all card fields');
+      return;
+    }
+    if (paymentForm.type === 'wallet' && (!paymentForm.walletName || !paymentForm.phoneNumber)) {
+      toast.error('Please fill in all wallet fields');
+      return;
+    }
+
+    if (paymentForm.isDefault) {
+      setPaymentMethods(prev => prev.map(pm => ({ ...pm, isDefault: false })));
+    }
+
+    if (editingPayment) {
+      const updatedMethod: PaymentMethod = paymentForm.type === 'card'
+        ? {
+            ...editingPayment,
+            type: 'card',
+            last4: paymentForm.cardNumber?.slice(-4) || editingPayment.last4,
+            expiryMonth: parseInt(paymentForm.expiryMonth || '0'),
+            expiryYear: parseInt(paymentForm.expiryYear || '0'),
+            isDefault: paymentForm.isDefault,
+          }
+        : {
+            ...editingPayment,
+            type: 'wallet',
+            walletName: paymentForm.walletName,
+            phoneNumber: paymentForm.phoneNumber,
+            isDefault: paymentForm.isDefault,
+          };
+      setPaymentMethods(prev => prev.map(pm => 
+        pm.id === editingPayment.id 
+          ? updatedMethod
+          : paymentForm.isDefault ? { ...pm, isDefault: false } : pm
+      ));
+      toast.success('Payment method updated');
+    } else {
+      const newMethod: PaymentMethod = paymentForm.type === 'card'
+        ? {
+            id: Date.now().toString(),
+            type: 'card',
+            last4: paymentForm.cardNumber?.slice(-4) || '0000',
+            brand: 'Visa',
+            expiryMonth: parseInt(paymentForm.expiryMonth || '0'),
+            expiryYear: parseInt(paymentForm.expiryYear || '0'),
+            isDefault: paymentForm.isDefault,
+          }
+        : {
+            id: Date.now().toString(),
+            type: 'wallet',
+            walletName: paymentForm.walletName || '',
+            phoneNumber: paymentForm.phoneNumber || '',
+            isDefault: paymentForm.isDefault,
+          };
+      setPaymentMethods(prev => [...prev, newMethod]);
+      toast.success('Payment method added');
+    }
+    setIsPaymentDialogOpen(false);
   };
 
   return (
@@ -300,16 +433,22 @@ export default function CheckoutPage() {
 
             {/* Payment Method */}
             <Card className="p-6">
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <CreditCard className="w-6 h-6 text-orange-500" />
-                Payment Method
-              </h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <CreditCard className="w-6 h-6 text-orange-500" />
+                  Payment Method
+                </h2>
+              </div>
 
-              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as 'cash' | 'card' | 'wallet')}>
+              <RadioGroup value={paymentMethodType} onValueChange={(value) => {
+                setPaymentMethodType(value as 'cash' | 'card' | 'wallet');
+                setSelectedPaymentMethodId('');
+              }}>
                 <div className="space-y-4">
+                  {/* Cash on Delivery */}
                   <label
                     className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'cash'
+                      paymentMethodType === 'cash'
                         ? 'border-orange-500 bg-orange-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
@@ -322,41 +461,119 @@ export default function CheckoutPage() {
                     </div>
                   </label>
 
-                  <label
-                    className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'card'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <RadioGroupItem value="card" />
-                    <CreditCard className="w-6 h-6 text-gray-600" />
-                    <div className="flex-1">
-                      <div className="font-semibold">Credit/Debit Card</div>
-                      <div className="text-sm text-gray-600">Visa, Mastercard, or other cards</div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Add Card
-                    </Button>
-                  </label>
+                  {/* Credit/Debit Cards */}
+                  <div>
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        paymentMethodType === 'card'
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setPaymentMethodType('card')}
+                    >
+                      <RadioGroupItem value="card" />
+                      <CreditCard className="w-6 h-6 text-gray-600" />
+                      <div className="flex-1">
+                        <div className="font-semibold">Credit/Debit Card</div>
+                        <div className="text-sm text-gray-600">Visa, Mastercard, or other cards</div>
+                      </div>
+                    </label>
+                    
+                    {paymentMethodType === 'card' && (
+                      <div className="mt-3 ml-10 space-y-3">
+                        {paymentMethods.filter(pm => pm.type === 'card').map((method) => (
+                          <label
+                            key={method.id}
+                            className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                              selectedPaymentMethodId === method.id
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="card-method"
+                              checked={selectedPaymentMethodId === method.id}
+                              onChange={() => setSelectedPaymentMethodId(method.id)}
+                              className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                            />
+                            <CreditCard className="w-5 h-5 text-gray-400" />
+                            <div className="flex-1">
+                              <div className="font-semibold">•••• •••• •••• {method.last4}</div>
+                              <div className="text-sm text-gray-600">
+                                {method.brand} • Expires {String(method.expiryMonth).padStart(2, '0')}/{method.expiryYear}
+                              </div>
+                            </div>
+                            {method.isDefault && (
+                              <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs font-semibold rounded">
+                                Default
+                              </span>
+                            )}
+                          </label>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleAddPayment('card'); }} className="ml-3">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Card
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
-                  <label
-                    className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      paymentMethod === 'wallet'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <RadioGroupItem value="wallet" />
-                    <Wallet className="w-6 h-6 text-gray-600" />
-                    <div className="flex-1">
-                      <div className="font-semibold">Mobile Wallet</div>
-                      <div className="text-sm text-gray-600">JazzCash, EasyPaisa, or other wallets</div>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Add Wallet
-                    </Button>
-                  </label>
+                  {/* Mobile Wallets */}
+                  <div>
+                    <label
+                      className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        paymentMethodType === 'wallet'
+                          ? 'border-orange-500 bg-orange-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                      onClick={() => setPaymentMethodType('wallet')}
+                    >
+                      <RadioGroupItem value="wallet" />
+                      <Wallet className="w-6 h-6 text-gray-600" />
+                      <div className="flex-1">
+                        <div className="font-semibold">Mobile Wallet</div>
+                        <div className="text-sm text-gray-600">JazzCash, EasyPaisa, or other wallets</div>
+                      </div>
+                    </label>
+                    
+                    {paymentMethodType === 'wallet' && (
+                      <div className="mt-3 ml-10 space-y-3">
+                        {paymentMethods.filter(pm => pm.type === 'wallet').map((method) => (
+                          <label
+                            key={method.id}
+                            className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                              selectedPaymentMethodId === method.id
+                                ? 'border-orange-500 bg-orange-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="wallet-method"
+                              checked={selectedPaymentMethodId === method.id}
+                              onChange={() => setSelectedPaymentMethodId(method.id)}
+                              className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                            />
+                            <Wallet className="w-5 h-5 text-gray-400" />
+                            <div className="flex-1">
+                              <div className="font-semibold">{method.walletName}</div>
+                              <div className="text-sm text-gray-600">{method.phoneNumber}</div>
+                            </div>
+                            {method.isDefault && (
+                              <span className="px-2 py-0.5 bg-orange-100 text-orange-600 text-xs font-semibold rounded">
+                                Default
+                              </span>
+                            )}
+                          </label>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleAddPayment('wallet'); }} className="ml-3">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Wallet
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </RadioGroup>
             </Card>
@@ -584,6 +801,150 @@ export default function CheckoutPage() {
             </Button>
             <Button onClick={handleSaveAddress} className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600">
               {editingAddress ? 'Update Address' : 'Add Address'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Method Dialog */}
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingPayment ? 'Edit Payment Method' : 'Add Payment Method'}</DialogTitle>
+            <DialogDescription>
+              {editingPayment ? 'Update your payment method details' : 'Add a new payment method'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Payment Type</Label>
+              <div className="flex gap-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentForm({ ...paymentForm, type: 'card' })}
+                  className={`flex-1 p-4 border-2 rounded-lg transition-all ${
+                    paymentForm.type === 'card'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <CreditCard className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+                  <div className="font-semibold">Card</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentForm({ ...paymentForm, type: 'wallet' })}
+                  className={`flex-1 p-4 border-2 rounded-lg transition-all ${
+                    paymentForm.type === 'wallet'
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Wallet className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+                  <div className="font-semibold">Wallet</div>
+                </button>
+              </div>
+            </div>
+
+            {paymentForm.type === 'card' ? (
+              <>
+                <div>
+                  <Label htmlFor="cardNumber">Card Number *</Label>
+                  <Input
+                    id="cardNumber"
+                    value={paymentForm.cardNumber || ''}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, cardNumber: e.target.value })}
+                    placeholder="1234 5678 9012 3456"
+                    className="mt-2"
+                    maxLength={19}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="expiryMonth">Expiry Month *</Label>
+                    <Input
+                      id="expiryMonth"
+                      value={paymentForm.expiryMonth || ''}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, expiryMonth: e.target.value })}
+                      placeholder="MM"
+                      className="mt-2"
+                      maxLength={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expiryYear">Expiry Year *</Label>
+                    <Input
+                      id="expiryYear"
+                      value={paymentForm.expiryYear || ''}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, expiryYear: e.target.value })}
+                      placeholder="YYYY"
+                      className="mt-2"
+                      maxLength={4}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cvv">CVV *</Label>
+                    <Input
+                      id="cvv"
+                      type="password"
+                      value={paymentForm.cvv || ''}
+                      onChange={(e) => setPaymentForm({ ...paymentForm, cvv: e.target.value })}
+                      placeholder="123"
+                      className="mt-2"
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="walletName">Wallet Name *</Label>
+                  <Input
+                    id="walletName"
+                    value={paymentForm.walletName || ''}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, walletName: e.target.value })}
+                    placeholder="JazzCash, EasyPaisa, etc."
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phoneNumber">Phone Number *</Label>
+                  <Input
+                    id="phoneNumber"
+                    value={paymentForm.phoneNumber || ''}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, phoneNumber: e.target.value })}
+                    placeholder="+92 300 1234567"
+                    className="mt-2"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="paymentDefault"
+                checked={paymentForm.isDefault}
+                onChange={(e) => setPaymentForm({ ...paymentForm, isDefault: e.target.checked })}
+                className="h-4 w-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+              />
+              <Label htmlFor="paymentDefault" className="cursor-pointer">
+                Set as default payment method
+              </Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePayment}
+              className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+            >
+              {editingPayment ? 'Update Payment Method' : 'Add Payment Method'}
             </Button>
           </DialogFooter>
         </DialogContent>

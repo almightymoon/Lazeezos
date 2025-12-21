@@ -11,17 +11,6 @@ const nextConfig = {
       },
     ],
   },
-  webpack: (config, { isServer }) => {
-    // Fix for @radix-ui vendor chunks issue
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-
-    return config;
-  },
 }
 
 module.exports = nextConfig
