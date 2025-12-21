@@ -1,0 +1,553 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { 
+  ArrowLeft, 
+  Save, 
+  Upload, 
+  MapPin, 
+  Phone, 
+  Mail, 
+  Clock,
+  Image as ImageIcon,
+  Edit,
+  X,
+  Plus,
+  Trash2,
+  ChefHat,
+  Globe,
+  Building2,
+  FileText
+} from 'lucide-react';
+import { Button } from '../../../components/ui/button';
+import { Card } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
+import { Switch } from '../../../components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
+import { Separator } from '../../../components/ui/separator';
+import { toast } from 'sonner';
+import { Toaster } from '../../../components/ui/sonner';
+
+const operatingHours = [
+  { day: 'Monday', open: '09:00', close: '22:00' },
+  { day: 'Tuesday', open: '09:00', close: '22:00' },
+  { day: 'Wednesday', open: '09:00', close: '22:00' },
+  { day: 'Thursday', open: '09:00', close: '22:00' },
+  { day: 'Friday', open: '09:00', close: '23:00' },
+  { day: 'Saturday', open: '10:00', close: '23:00' },
+  { day: 'Sunday', open: '10:00', close: '22:00' },
+];
+
+export default function RestaurantProfilePage() {
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    name: 'Burger Palace',
+    description: 'Delicious burgers made with fresh ingredients',
+    email: 'contact@burgerpalace.com',
+    phone: '+92 300 1234567',
+    businessPhone: '+92 300 1234568',
+    address: '123 Main Street',
+    city: 'Karachi',
+    state: 'Sindh',
+    zipCode: '75500',
+    country: 'Pakistan',
+    cuisineTypes: ['American', 'Burgers', 'Fast Food'],
+    restaurantType: 'FAST_FOOD',
+    isOpen: true,
+    isPromoted: false,
+    deliveryFee: 2.99,
+    minOrder: 15.00,
+    priceRange: '$$',
+    operatingHours: operatingHours,
+  });
+
+  const [cuisineInput, setCuisineInput] = useState('');
+
+  const handleSave = () => {
+    toast.success('Restaurant profile updated successfully!');
+    setIsEditing(false);
+  };
+
+  const addCuisine = () => {
+    if (cuisineInput && !formData.cuisineTypes.includes(cuisineInput)) {
+      setFormData({
+        ...formData,
+        cuisineTypes: [...formData.cuisineTypes, cuisineInput],
+      });
+      setCuisineInput('');
+    }
+  };
+
+  const removeCuisine = (cuisine: string) => {
+    setFormData({
+      ...formData,
+      cuisineTypes: formData.cuisineTypes.filter(c => c !== cuisine),
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">
+      <Toaster />
+      
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b shadow-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between py-4">
+            <Link href="/partner/dashboard" className="flex items-center gap-3">
+              <Image
+                src="/lazeezos_icon.png"
+                alt="Lazeezos"
+                width={50}
+                height={50}
+                className="object-contain h-12 w-auto"
+              />
+              <span className="text-xl md:text-2xl font-bold bg-gradient-to-r from-orange-500 via-orange-400 to-pink-500 bg-clip-text text-transparent">
+                Lazeezos Partner
+              </span>
+            </Link>
+            <div className="flex items-center gap-4">
+              <Link href="/partner/dashboard">
+                <Button variant="ghost">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                Restaurant Profile
+              </h1>
+              <p className="text-gray-600">Manage your restaurant information and settings</p>
+            </div>
+            <Button
+              onClick={isEditing ? handleSave : () => setIsEditing(true)}
+              className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 hover:from-orange-600 hover:via-pink-600 hover:to-purple-600 text-white"
+            >
+              {isEditing ? (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {/* Restaurant Status Card */}
+          <Card className="p-6 bg-gradient-to-r from-orange-500 to-pink-500 text-white border-0 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                  <ChefHat className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">{formData.name}</h2>
+                  <div className="flex items-center gap-4 text-sm opacity-90">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      <span>{formData.city}, {formData.country}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm opacity-90">Status:</span>
+                  <div className={`px-3 py-1 rounded-full ${formData.isOpen ? 'bg-green-500/30' : 'bg-red-500/30'}`}>
+                    {formData.isOpen ? 'Open' : 'Closed'}
+                  </div>
+                </div>
+                {isEditing && (
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={formData.isOpen}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isOpen: checked })}
+                    />
+                    <span className="text-sm opacity-90">Toggle Status</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Basic Information */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <FileText className="w-6 h-6 text-orange-500" />
+              Basic Information
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="name">Restaurant Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                  rows={4}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="restaurantType">Restaurant Type *</Label>
+                  <Select
+                    value={formData.restaurantType}
+                    onValueChange={(value) => setFormData({ ...formData, restaurantType: value })}
+                    disabled={!isEditing}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="RESTAURANT">Restaurant</SelectItem>
+                      <SelectItem value="FAST_FOOD">Fast Food</SelectItem>
+                      <SelectItem value="CAFE">Cafe</SelectItem>
+                      <SelectItem value="BAKERY">Bakery</SelectItem>
+                      <SelectItem value="FOOD_TRUCK">Food Truck</SelectItem>
+                      <SelectItem value="CATERING">Catering</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="priceRange">Price Range *</Label>
+                  <Select
+                    value={formData.priceRange}
+                    onValueChange={(value) => setFormData({ ...formData, priceRange: value })}
+                    disabled={!isEditing}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="$">$ - Budget Friendly</SelectItem>
+                      <SelectItem value="$$">$$ - Moderate</SelectItem>
+                      <SelectItem value="$$$">$$$ - Expensive</SelectItem>
+                      <SelectItem value="$$$$">$$$$ - Very Expensive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Cuisine Types</Label>
+                <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                  {formData.cuisineTypes.map((cuisine) => (
+                    <div
+                      key={cuisine}
+                      className="flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"
+                    >
+                      <span>{cuisine}</span>
+                      {isEditing && (
+                        <button
+                          onClick={() => removeCuisine(cuisine)}
+                          className="hover:text-orange-900"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {isEditing && (
+                  <div className="flex gap-2">
+                    <Input
+                      value={cuisineInput}
+                      onChange={(e) => setCuisineInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && addCuisine()}
+                      placeholder="Add cuisine type"
+                      className="flex-1"
+                    />
+                    <Button onClick={addCuisine} variant="outline">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Contact Information */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Phone className="w-6 h-6 text-orange-500" />
+              Contact Information
+            </h2>
+            <div className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={!isEditing}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="phone">Phone *</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!isEditing}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="businessPhone">Business Phone (Optional)</Label>
+                <Input
+                  id="businessPhone"
+                  value={formData.businessPhone}
+                  onChange={(e) => setFormData({ ...formData, businessPhone: e.target.value })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Location */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <MapPin className="w-6 h-6 text-orange-500" />
+              Location
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="address">Street Address *</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div>
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    disabled={!isEditing}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    disabled={!isEditing}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="zipCode">Zip Code *</Label>
+                  <Input
+                    id="zipCode"
+                    value={formData.zipCode}
+                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
+                    disabled={!isEditing}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="country">Country *</Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Operating Hours */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Clock className="w-6 h-6 text-orange-500" />
+              Operating Hours
+            </h2>
+            <div className="space-y-4">
+              {formData.operatingHours.map((hours, index) => (
+                <div key={hours.day} className="flex items-center gap-4">
+                  <div className="w-24 font-medium">{hours.day}</div>
+                  {isEditing ? (
+                    <>
+                      <Input
+                        type="time"
+                        value={hours.open}
+                        onChange={(e) => {
+                          const newHours = [...formData.operatingHours];
+                          newHours[index].open = e.target.value;
+                          setFormData({ ...formData, operatingHours: newHours });
+                        }}
+                        className="flex-1"
+                      />
+                      <span className="text-gray-500">to</span>
+                      <Input
+                        type="time"
+                        value={hours.close}
+                        onChange={(e) => {
+                          const newHours = [...formData.operatingHours];
+                          newHours[index].close = e.target.value;
+                          setFormData({ ...formData, operatingHours: newHours });
+                        }}
+                        className="flex-1"
+                      />
+                    </>
+                  ) : (
+                    <div className="flex-1 text-gray-700">
+                      {hours.open} - {hours.close}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Delivery Settings */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <Building2 className="w-6 h-6 text-orange-500" />
+              Delivery Settings
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="deliveryFee">Delivery Fee (PKR) *</Label>
+                <Input
+                  id="deliveryFee"
+                  type="number"
+                  step="0.01"
+                  value={formData.deliveryFee}
+                  onChange={(e) => setFormData({ ...formData, deliveryFee: parseFloat(e.target.value) || 0 })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="minOrder">Minimum Order (PKR) *</Label>
+                <Input
+                  id="minOrder"
+                  type="number"
+                  step="0.01"
+                  value={formData.minOrder}
+                  onChange={(e) => setFormData({ ...formData, minOrder: parseFloat(e.target.value) || 0 })}
+                  disabled={!isEditing}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Images Section */}
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <ImageIcon className="w-6 h-6 text-orange-500" />
+              Restaurant Images
+            </h2>
+            <div className="space-y-6">
+              <div>
+                <Label>Logo</Label>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <ImageIcon className="w-8 h-8 text-gray-400" />
+                  </div>
+                  {isEditing && (
+                    <Button variant="outline">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Logo
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label>Cover Image</Label>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <ImageIcon className="w-12 h-12 text-gray-400" />
+                  </div>
+                  {isEditing && (
+                    <Button variant="outline">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Cover
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <Label>Gallery Images</Label>
+                <div className="mt-2 grid grid-cols-3 gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                    </div>
+                  ))}
+                </div>
+                {isEditing && (
+                  <Button variant="outline" className="mt-4">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Images
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+

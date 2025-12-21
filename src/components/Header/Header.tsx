@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, MapPin, ShoppingCart, User, Bike, ShoppingBag, Store, Package, UtensilsCrossed, LogOut, Ticket, HelpCircle, Settings } from 'lucide-react';
+import { Search, MapPin, ShoppingCart, User, Bike, ShoppingBag, Store, Package, UtensilsCrossed, LogOut, Ticket, HelpCircle, Settings, Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import {
@@ -155,7 +155,7 @@ export function Header({
           {/* User Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {authState ? (
-              // Logged in: Show Cart and Profile
+              // Logged in: Show Cart, Notifications, and Profile
               <>
             <Button
               variant="ghost"
@@ -170,6 +170,103 @@ export function Header({
                 </span>
               )}
             </Button>
+
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative hover:bg-gray-100 rounded-lg">
+                  <Bell className="w-5 h-5 text-gray-600" />
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                    3
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 z-[100]" sideOffset={8}>
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Notifications</span>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/notifications');
+                    }}
+                    className="text-xs text-orange-500 hover:text-orange-600"
+                  >
+                    View All
+                  </button>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-96 overflow-y-auto">
+                  <div
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/orders/12345');
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Order Confirmed</p>
+                        <p className="text-xs text-gray-600">Your order #12345 has been confirmed</p>
+                        <p className="text-xs text-gray-400 mt-1">2 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/orders/12345');
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Order is being prepared</p>
+                        <p className="text-xs text-gray-600">Restaurant has started preparing your order</p>
+                        <p className="text-xs text-gray-400 mt-1">15 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      router.push('/vouchers');
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Special Offer</p>
+                        <p className="text-xs text-gray-600">Get 20% off on your next order</p>
+                        <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold">Welcome to Lazeezos!</p>
+                        <p className="text-xs text-gray-600">Thank you for joining us</p>
+                        <p className="text-xs text-gray-400 mt-1">2 days ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    router.push('/notifications');
+                  }}
+                  className="cursor-pointer"
+                >
+                  View All Notifications
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
                 <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -203,6 +300,13 @@ export function Header({
                     }}>
                       <Ticket className="mr-2 h-4 w-4" />
                       Voucher
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/notifications');
+                    }}>
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={(e) => {
                       e.preventDefault();
