@@ -10,103 +10,58 @@ import { Cart, CartItem } from '../../../components/Cart';
 import { Toaster } from '../../../components/ui/sonner';
 import { toast } from 'sonner';
 
-// Mock restaurant data - In real app, fetch from API
-const restaurants: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Burger Palace',
-    image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    cuisine: ['American', 'Burgers', 'Fast Food'],
-    rating: 4.5,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-    isPromoted: true,
-    discount: '20% OFF',
-  },
-  {
-    id: '2',
-    name: 'Pizza Italia',
-    image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    cuisine: ['Italian', 'Pizza', 'Pasta'],
-    rating: 4.7,
-    deliveryTime: '30-40 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 20.00,
-    discount: '15% OFF',
-  },
-];
-
-const menuItemsByRestaurant: Record<string, MenuItem[]> = {
-  '1': [
-    {
-      id: '1-1',
-      name: 'Classic Beef Burger',
-      description: 'Juicy beef patty with fresh vegetables',
-      price: 12.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Burgers',
-      isPopular: true,
-    },
-    {
-      id: '1-2',
-      name: 'Chicken Burger',
-      description: 'Grilled chicken with special sauce',
-      price: 11.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Burgers',
-    },
-    {
-      id: '1-3',
-      name: 'French Fries',
-      description: 'Crispy golden fries',
-      price: 4.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Sides',
-    },
-  ],
-  '2': [
-    {
-      id: '2-1',
-      name: 'Margherita Pizza',
-      description: 'Classic Italian pizza with mozzarella and basil',
-      price: 18.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Pizza',
-      isPopular: true,
-      isVeg: true,
-    },
-    {
-      id: '2-2',
-      name: 'Pepperoni Pizza',
-      description: 'Spicy pepperoni with mozzarella',
-      price: 20.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Pizza',
-    },
-  ],
-};
+// Restaurant and menu items are now fetched from the API
 
 export default function RestaurantDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const restaurantId = params?.id as string;
+  const restaurantSlug = params?.id as string; // Can be either slug or id
   
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const foundRestaurant = restaurants.find(r => r.id === restaurantId);
-    if (foundRestaurant) {
-      setRestaurant(foundRestaurant);
-    } else {
-      toast.error('Restaurant not found');
-      router.push('/');
+    const fetchRestaurant = async () => {
+      try {
+        setLoading(true);
+        // Try fetching by slug first, then by id if that fails
+        let response = await fetch(`/api/restaurants/${restaurantSlug}`);
+        if (!response.ok) {
+          // If slug fails, try fetching all restaurants and find by id
+          const allRestaurants = await fetch('/api/restaurants');
+          if (allRestaurants.ok) {
+            const restaurants = await allRestaurants.json();
+            const found = restaurants.find((r: Restaurant) => r.id === restaurantSlug);
+            if (found) {
+              response = await fetch(`/api/restaurants/${found.slug}`);
+            }
+          }
+        }
+        
+        if (response.ok) {
+          const data = await response.json();
+          setRestaurant(data.restaurant);
+          setMenuItems(data.menu || []);
+        } else {
+          toast.error('Restaurant not found');
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Error fetching restaurant:', error);
+        toast.error('Failed to load restaurant');
+        router.push('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (restaurantSlug) {
+      fetchRestaurant();
     }
-  }, [restaurantId, router]);
+  }, [restaurantSlug, router]);
 
   const handleAddToCart = (item: MenuItem) => {
     const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
@@ -139,15 +94,16 @@ export default function RestaurantDetailPage() {
 
   const totalCartItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  if (!restaurant) {
+  if (loading || !restaurant) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-600">Loading restaurant...</p>
+        </div>
       </div>
     );
   }
-
-  const menuItems = menuItemsByRestaurant[restaurant.id] || [];
 
   return (
     <>

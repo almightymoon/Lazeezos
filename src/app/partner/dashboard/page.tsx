@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -106,19 +106,15 @@ interface Order {
 export default function PartnerDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('week');
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([
-    { id: '1', name: 'Chicken Biryani', description: 'Fragrant basmati rice with tender chicken', category: 'Main Course', price: 850, discountedPrice: 750, status: 'AVAILABLE', isPopular: true, isVeg: false, isSpicy: true },
-    { id: '2', name: 'Beef Burger', description: 'Juicy beef patty with fresh vegetables', category: 'Fast Food', price: 450, status: 'AVAILABLE', isPopular: true, isVeg: false, isSpicy: false },
-    { id: '3', name: 'Pizza Margherita', description: 'Classic Italian pizza with mozzarella', category: 'Fast Food', price: 650, status: 'AVAILABLE', isPopular: false, isVeg: true, isSpicy: false },
-    { id: '4', name: 'Chicken Karahi', description: 'Spicy chicken curry cooked in karahi', category: 'Main Course', price: 950, status: 'AVAILABLE', isPopular: true, isVeg: false, isSpicy: true },
-  ]);
-  const [orders, setOrders] = useState<Order[]>([
-    { id: 'ORD-001', orderNumber: 'ORD-001', customer: 'Ahmed Ali', items: 3, total: 1250, status: 'PREPARING', time: '5 min ago', deliveryAddress: '123 Main St, Karachi', phone: '+92 300 1234567' },
-    { id: 'ORD-002', orderNumber: 'ORD-002', customer: 'Sara Khan', items: 2, total: 890, status: 'CONFIRMED', time: '12 min ago', deliveryAddress: '456 Park Ave, Karachi', phone: '+92 300 2345678' },
-    { id: 'ORD-003', orderNumber: 'ORD-003', customer: 'Hassan Raza', items: 5, total: 2100, status: 'READY', time: '18 min ago', deliveryAddress: '789 Market Rd, Karachi', phone: '+92 300 3456789' },
-    { id: 'ORD-004', orderNumber: 'ORD-004', customer: 'Fatima Malik', items: 1, total: 450, status: 'DELIVERED', time: '25 min ago', deliveryAddress: '321 Garden St, Karachi', phone: '+92 300 4567890' },
-    { id: 'ORD-005', orderNumber: 'ORD-005', customer: 'Ali Hassan', items: 4, total: 1800, status: 'PENDING', time: '2 min ago', deliveryAddress: '654 Ocean Blvd, Karachi', phone: '+92 300 5678901' },
-  ]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState({
+    revenue: { value: 0, change: 0, period: 'vs last week' },
+    orders: { value: 0, change: 0, period: 'vs last week' },
+    customers: { value: 0, change: 0, period: 'new this week' },
+    rating: { value: 0, change: 0, period: 'from 0' },
+  });
+  const [loading, setLoading] = useState(true);
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('all');
@@ -138,14 +134,43 @@ export default function PartnerDashboard() {
     isSpicy: false,
   });
 
-  // Mock data
-  const stats = {
-    revenue: { value: 45230, change: +12.5, period: 'vs last week' },
-    orders: { value: 342, change: +8.2, period: 'vs last week' },
-    customers: { value: 1289, change: +15.3, period: 'new this week' },
-    rating: { value: 4.8, change: +0.2, period: 'from 4.6' },
-  };
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch stats
+        const statsResponse = await fetch('/api/partner/stats');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData);
+        }
 
+        // Fetch menu items
+        const menuResponse = await fetch('/api/partner/menu');
+        if (menuResponse.ok) {
+          const menuData = await menuResponse.json();
+          setMenuItems(menuData.menuItems || []);
+        }
+
+        // Fetch orders
+        const ordersResponse = await fetch('/api/partner/orders');
+        if (ordersResponse.ok) {
+          const ordersData = await ordersResponse.json();
+          setOrders(ordersData.orders || []);
+        }
+      } catch (error) {
+        console.error('Error fetching partner data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Calculate top items from menu items (mock for now)
   const topItems = [
     { name: 'Chicken Biryani', orders: 142, revenue: 28400 },
     { name: 'Beef Burger', orders: 98, revenue: 19600 },
@@ -214,34 +239,74 @@ export default function PartnerDashboard() {
     setIsMenuDialogOpen(true);
   };
 
-  const handleSaveMenuItem = () => {
+  const handleSaveMenuItem = async () => {
     if (!menuFormData.name || !menuFormData.category || !menuFormData.price) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (editingMenuItem) {
-      setMenuItems(menuItems.map(item => item.id === editingMenuItem.id ? { ...menuFormData, id: editingMenuItem.id } as MenuItem : item));
-      toast.success('Menu item updated successfully');
-    } else {
-      const newItem: MenuItem = {
-        ...menuFormData as MenuItem,
-        id: Date.now().toString(),
-      };
-      setMenuItems([...menuItems, newItem]);
-      toast.success('Menu item added successfully');
+    try {
+      if (editingMenuItem) {
+        const response = await fetch('/api/partner/menu', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingMenuItem.id, ...menuFormData }),
+        });
+        if (response.ok) {
+          const updated = await response.json();
+          setMenuItems(menuItems.map(item => item.id === editingMenuItem.id ? updated.menuItem : item));
+          toast.success('Menu item updated successfully');
+        } else {
+          toast.error('Failed to update menu item');
+        }
+      } else {
+        const response = await fetch('/api/partner/menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(menuFormData),
+        });
+        if (response.ok) {
+          const newItem = await response.json();
+          setMenuItems([...menuItems, newItem.menuItem]);
+          toast.success('Menu item added successfully');
+        } else {
+          toast.error('Failed to add menu item');
+        }
+      }
+      setIsMenuDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving menu item:', error);
+      toast.error('Failed to save menu item');
     }
-    setIsMenuDialogOpen(false);
   };
 
-  const handleDeleteMenuItem = (id: string) => {
-    setMenuItems(menuItems.filter(item => item.id !== id));
-    toast.success('Menu item deleted successfully');
+  const handleDeleteMenuItem = async (id: string) => {
+    try {
+      const response = await fetch(`/api/partner/menu?id=${id}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setMenuItems(menuItems.filter(item => item.id !== id));
+        toast.success('Menu item deleted successfully');
+      } else {
+        toast.error('Failed to delete menu item');
+      }
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      toast.error('Failed to delete menu item');
+    }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order['status']) => {
-    setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
-    toast.success(`Order status updated to ${newStatus}`);
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      // In a real app, you'd have an API endpoint for this
+      // For now, just update locally
+      setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
+      toast.success(`Order status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+    }
   };
 
   const handleViewOrder = (order: Order) => {

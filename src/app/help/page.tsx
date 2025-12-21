@@ -206,6 +206,7 @@ export default function HelpPage() {
         selectedCategory=""
         onCartClick={() => {}}
         cartItemCount={0}
+        isLoggedIn={true}
       />
 
       <div className="pt-20 md:pt-24">

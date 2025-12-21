@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Clock } from 'lucide-react';
 import { Header } from '../components/Header';
 import { FilterSidebar, FilterOptions } from '../components/Filter';
@@ -11,260 +12,8 @@ import { Cart, CartItem } from '../components/Cart';
 import { Toaster } from '../components/ui/sonner';
 import { toast } from 'sonner';
 
-// Mock restaurant data
-const restaurants: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Burger Palace',
-    image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['American', 'Burgers', 'Fast Food'],
-    rating: 4.5,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-    isPromoted: true,
-    discount: '20% OFF',
-  },
-  {
-    id: '2',
-    name: 'Pizza Italia',
-    image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Italian', 'Pizza', 'Pasta'],
-    rating: 4.7,
-    deliveryTime: '30-40 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 20.00,
-    discount: '15% OFF',
-  },
-  {
-    id: '3',
-    name: 'Sushi World',
-    image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Japanese', 'Sushi', 'Asian'],
-    rating: 4.8,
-    deliveryTime: '35-45 min',
-    priceRange: '$$$',
-    deliveryFee: 4.99,
-    minOrder: 25.00,
-    isPromoted: true,
-  },
-  {
-    id: '4',
-    name: 'Sweet Treats',
-    image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Desserts', 'Bakery', 'Sweets'],
-    rating: 4.6,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 1.99,
-    minOrder: 10.00,
-  },
-  {
-    id: '5',
-    name: 'Green Bowl',
-    image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Healthy', 'Salads', 'Vegan'],
-    rating: 4.4,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 2.49,
-    minOrder: 12.00,
-    discount: '10% OFF',
-  },
-  {
-    id: '6',
-    name: 'Taco Fiesta',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mexican', 'Tacos', 'Burritos'],
-    rating: 4.3,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-  },
-  {
-    id: '7',
-    name: 'Thai Express',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Thai', 'Asian'],
-    rating: 4.5,
-    deliveryTime: '30-40 min',
-    priceRange: '$$',
-    deliveryFee: 3.49,
-    minOrder: 18.00,
-  },
-  {
-    id: '8',
-    name: 'Mediterranean Grill',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mediterranean', 'Healthy'],
-    rating: 4.7,
-    deliveryTime: '25-35 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 22.00,
-    discount: '25% OFF',
-  },
-];
-
-// Mock menu items
-const menuItemsByRestaurant: Record<string, MenuItem[]> = {
-  '1': [
-    {
-      id: '1-1',
-      name: 'Classic Beef Burger',
-      description: 'Juicy beef patty with lettuce, tomato, and special sauce',
-      price: 12.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-      isPopular: true,
-    },
-    {
-      id: '1-2',
-      name: 'Cheese Burger',
-      description: 'Double cheese with beef patty',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-    },
-    {
-      id: '1-3',
-      name: 'Veggie Burger',
-      description: 'Plant-based patty with fresh vegetables',
-      price: 11.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-      isVeg: true,
-    },
-    {
-      id: '1-4',
-      name: 'French Fries',
-      description: 'Crispy golden fries',
-      price: 4.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sides',
-      isVeg: true,
-    },
-  ],
-  '2': [
-    {
-      id: '2-1',
-      name: 'Margherita Pizza',
-      description: 'Classic pizza with tomato sauce, mozzarella, and basil',
-      price: 15.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pizza',
-      isVeg: true,
-      isPopular: true,
-    },
-    {
-      id: '2-2',
-      name: 'Pepperoni Pizza',
-      description: 'Loaded with pepperoni and cheese',
-      price: 17.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pizza',
-    },
-    {
-      id: '2-3',
-      name: 'Carbonara Pasta',
-      description: 'Creamy pasta with bacon and parmesan',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pasta',
-    },
-  ],
-  '3': [
-    {
-      id: '3-1',
-      name: 'California Roll',
-      description: 'Crab, avocado, and cucumber',
-      price: 12.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sushi Rolls',
-      isPopular: true,
-    },
-    {
-      id: '3-2',
-      name: 'Spicy Tuna Roll',
-      description: 'Tuna with spicy mayo',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sushi Rolls',
-    },
-    {
-      id: '3-3',
-      name: 'Salmon Nigiri',
-      description: 'Fresh salmon over rice',
-      price: 8.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Nigiri',
-    },
-  ],
-  '4': [
-    {
-      id: '4-1',
-      name: 'Chocolate Cake',
-      description: 'Rich chocolate cake with ganache',
-      price: 8.99,
-      image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Cakes',
-      isPopular: true,
-      isVeg: true,
-    },
-    {
-      id: '4-2',
-      name: 'Cheesecake',
-      description: 'New York style cheesecake',
-      price: 9.99,
-      image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Cakes',
-      isVeg: true,
-    },
-  ],
-  '5': [
-    {
-      id: '5-1',
-      name: 'Buddha Bowl',
-      description: 'Quinoa, vegetables, and tahini dressing',
-      price: 13.99,
-      image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Bowls',
-      isVeg: true,
-      isPopular: true,
-    },
-    {
-      id: '5-2',
-      name: 'Greek Salad',
-      description: 'Fresh vegetables with feta cheese',
-      price: 11.99,
-      image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Salads',
-      isVeg: true,
-    },
-  ],
-  '6': [
-    {
-      id: '6-1',
-      name: 'Chicken Tacos',
-      description: 'Grilled chicken with salsa and guacamole',
-      price: 10.99,
-      image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Tacos',
-      isPopular: true,
-    },
-    {
-      id: '6-2',
-      name: 'Burrito Bowl',
-      description: 'Rice, beans, meat, and toppings',
-      price: 13.99,
-      image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Bowls',
-    },
-  ],
-};
+// Note: Restaurants and menu items are now fetched from the API
+// See the useEffect hook in the Home component
 
 export default function Home() {
   const router = useRouter();
@@ -273,6 +22,9 @@ export default function Home() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [menuItemsByRestaurant, setMenuItemsByRestaurant] = useState<Record<string, MenuItem[]>>({});
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>({
     cuisines: [],
     priceRange: [],
@@ -411,6 +163,45 @@ export default function Home() {
       mealsScrollRef.current.scrollBy({ left: -350, behavior: 'smooth' });
     }
   };
+
+  // Fetch restaurants from API
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (filters.cuisines.length > 0) params.append('cuisine', filters.cuisines[0]);
+        
+        const response = await fetch(`/api/restaurants?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setRestaurants(data);
+          
+          // Fetch menu items for each restaurant
+          const menuItemsMap: Record<string, MenuItem[]> = {};
+          for (const restaurant of data) {
+            try {
+              const menuResponse = await fetch(`/api/restaurants/${restaurant.slug}`);
+              if (menuResponse.ok) {
+                const menuData = await menuResponse.json();
+                menuItemsMap[restaurant.id] = menuData.menu || [];
+              }
+            } catch (error) {
+              console.error(`Error fetching menu for ${restaurant.name}:`, error);
+            }
+          }
+          setMenuItemsByRestaurant(menuItemsMap);
+        }
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, [searchQuery, filters.cuisines]);
 
   // Filter restaurants based on filters and search
   const filteredRestaurants = restaurants.filter((restaurant) => {
@@ -620,47 +411,47 @@ export default function Home() {
                   { name: 'American', image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=400' },
                   { name: 'Seafood', image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=400' },
                   { name: 'Healthy', image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=400' },
-                ].map((cuisine) => (
-                  <div
-                    key={cuisine.name}
-                    className="flex-shrink-0 cursor-pointer group"
-                    onClick={() => {
-                      const cuisineLower = cuisine.name.toLowerCase();
-                      // Map menu items to filter cuisine names
-                      const cuisineMap: Record<string, string> = {
-                        'fast food': 'Fast Food',
-                        'burgers': 'Burgers',
-                        'sushi': 'Japanese',
-                        'thai': 'Thai',
-                        'indian': 'Indian',
-                        'mexican': 'Mexican',
-                        'american': 'American',
-                        'italian': 'Italian',
-                        'healthy': 'Healthy',
-                        'pizza': 'Italian',
-                        'biryani': 'Indian',
-                        'pakistani': 'Mediterranean',
-                        'shawarma': 'Mediterranean',
-                        'chinese': 'Chinese',
-                        'desserts': 'Desserts',
-                        'seafood': 'Japanese',
-                      };
-                      const filterCuisine = cuisineMap[cuisineLower] || cuisine.name;
-                      setFilters({ ...filters, cuisines: [filterCuisine] });
-                    }}
-                  >
-                    <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden mb-2 md:mb-3 border-2 border-transparent group-hover:border-pink-500 transition-all shadow-md group-hover:shadow-xl">
-                      <img
-                        src={cuisine.image}
-                        alt={cuisine.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    </div>
-                    <p className="text-center text-xs md:text-sm font-semibold text-pink-600 group-hover:text-pink-700 transition-colors">
-                      {cuisine.name}
-                    </p>
-                  </div>
-                ))}
+                ].map((cuisine) => {
+                  // Map cuisine names to slugs
+                  const cuisineSlugMap: Record<string, string> = {
+                    'Pizza': 'pizza',
+                    'Fast Food': 'fast-food',
+                    'Burgers': 'burgers',
+                    'Biryani': 'indian',
+                    'Desserts': 'desserts',
+                    'Pakistani': 'mediterranean',
+                    'Shawarma': 'mediterranean',
+                    'Chinese': 'chinese',
+                    'Italian': 'italian',
+                    'Sushi': 'sushi',
+                    'Thai': 'thai',
+                    'Indian': 'indian',
+                    'Mexican': 'mexican',
+                    'American': 'american',
+                    'Seafood': 'japanese',
+                    'Healthy': 'healthy',
+                  };
+                  const slug = cuisineSlugMap[cuisine.name] || cuisine.name.toLowerCase().replace(/\s+/g, '-');
+                  
+                  return (
+                    <Link
+                      key={cuisine.name}
+                      href={`/cuisine/${slug}`}
+                      className="flex-shrink-0 cursor-pointer group"
+                    >
+                      <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden mb-2 md:mb-3 border-2 border-transparent group-hover:border-pink-500 transition-all shadow-md group-hover:shadow-xl">
+                        <img
+                          src={cuisine.image}
+                          alt={cuisine.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                      </div>
+                      <p className="text-center text-xs md:text-sm font-semibold text-pink-600 group-hover:text-pink-700 transition-colors">
+                        {cuisine.name}
+                      </p>
+                    </Link>
+                  );
+                })}
                 </div>
                 {showRightArrow && (
                   <button
@@ -1149,21 +940,29 @@ export default function Home() {
               </h2>
               <p className="text-sm md:text-base text-gray-500">{filteredRestaurants.length} restaurants</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
-              {filteredRestaurants.map((restaurant) => (
-                <RestaurantCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  onClick={() => router.push(`/restaurant/${restaurant.id}`)}
-                />
-              ))}
-            </div>
-            {filteredRestaurants.length === 0 && (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+                  <p className="text-gray-600">Loading restaurants...</p>
+                </div>
+              </div>
+            ) : filteredRestaurants.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-xl text-gray-500">No restaurants found</p>
                 <p className="text-gray-400 mt-2">
                   Try adjusting your filters or search query
                 </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
+                {filteredRestaurants.map((restaurant) => (
+                  <RestaurantCard
+                    key={restaurant.id}
+                    restaurant={restaurant}
+                    onClick={() => router.push(`/restaurant/${restaurant.slug || restaurant.id}`)}
+                  />
+                ))}
               </div>
             )}
           </div>

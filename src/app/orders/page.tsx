@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/ui/button';
@@ -48,91 +48,7 @@ interface Order {
   rating?: number;
 }
 
-const mockActiveOrders: Order[] = [
-  {
-    id: '1',
-    restaurantName: 'Burger Palace',
-    restaurantImage: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    orderNumber: 'ORD-2024-001',
-    status: 'on_the_way',
-    items: [
-      { id: '1-1', name: 'Classic Beef Burger', quantity: 2, price: 12.99, image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '1-2', name: 'French Fries', quantity: 1, price: 4.99, image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    total: 30.97,
-    deliveryAddress: '123 Main Street, Apt 4B, City, State 12345',
-    phoneNumber: '+1 (555) 123-4567',
-    orderDate: '2024-01-15T14:30:00',
-    estimatedDelivery: '2024-01-15T15:00:00',
-  },
-  {
-    id: '2',
-    restaurantName: 'Pizza Italia',
-    restaurantImage: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    orderNumber: 'ORD-2024-002',
-    status: 'preparing',
-    items: [
-      { id: '2-1', name: 'Margherita Pizza', quantity: 1, price: 18.99, image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '2-2', name: 'Garlic Bread', quantity: 2, price: 5.99, image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    total: 30.97,
-    deliveryAddress: '123 Main Street, Apt 4B, City, State 12345',
-    phoneNumber: '+1 (555) 123-4567',
-    orderDate: '2024-01-15T15:00:00',
-    estimatedDelivery: '2024-01-15T15:35:00',
-  },
-];
-
-const mockPastOrders: Order[] = [
-  {
-    id: '3',
-    restaurantName: 'Sushi World',
-    restaurantImage: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    orderNumber: 'ORD-2024-003',
-    status: 'delivered',
-    items: [
-      { id: '3-1', name: 'California Roll', quantity: 3, price: 8.99, image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '3-2', name: 'Miso Soup', quantity: 1, price: 4.99, image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    total: 31.96,
-    deliveryAddress: '123 Main Street, Apt 4B, City, State 12345',
-    phoneNumber: '+1 (555) 123-4567',
-    orderDate: '2024-01-14T18:00:00',
-    rating: 5,
-  },
-  {
-    id: '4',
-    restaurantName: 'Chicken Express',
-    restaurantImage: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    orderNumber: 'ORD-2024-004',
-    status: 'delivered',
-    items: [
-      { id: '4-1', name: 'Fried Chicken', quantity: 1, price: 12.99, image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '4-2', name: 'Coleslaw', quantity: 1, price: 3.99, image: 'https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    total: 16.98,
-    deliveryAddress: '123 Main Street, Apt 4B, City, State 12345',
-    phoneNumber: '+1 (555) 123-4567',
-    orderDate: '2024-01-13T12:00:00',
-    rating: 4,
-  },
-  {
-    id: '5',
-    restaurantName: 'Sweet Treats',
-    restaurantImage: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    orderNumber: 'ORD-2024-005',
-    status: 'delivered',
-    items: [
-      { id: '5-1', name: 'Chocolate Cake', quantity: 1, price: 9.99, image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '5-2', name: 'Coffee', quantity: 2, price: 4.99, image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    total: 19.97,
-    deliveryAddress: '123 Main Street, Apt 4B, City, State 12345',
-    phoneNumber: '+1 (555) 123-4567',
-    orderDate: '2024-01-12T16:00:00',
-    rating: 5,
-  },
-];
+// Orders are now fetched from the API
 
 const getStatusConfig = (status: Order['status']) => {
   switch (status) {
@@ -167,9 +83,30 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [pastOrders, setPastOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const activeOrders = mockActiveOrders;
-  const pastOrders = mockPastOrders;
+  // Fetch orders from API
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/orders');
+        if (response.ok) {
+          const data = await response.json();
+          setActiveOrders(data.activeOrders || []);
+          setPastOrders(data.pastOrders || []);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const handleItemToggle = (itemId: string) => {
     const newSelected = new Set(selectedItems);
@@ -327,7 +264,15 @@ export default function OrdersPage() {
 
         {/* Active Orders */}
         {activeTab === 'active' && (
-          <div className="space-y-6">
+          loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+                <p className="text-gray-600">Loading orders...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
             {activeOrders.length === 0 ? (
               <Card className="p-12 text-center">
                 <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -425,12 +370,21 @@ export default function OrdersPage() {
                 );
               })
             )}
-          </div>
+            </div>
+          )
         )}
 
         {/* Past Orders */}
         {activeTab === 'past' && (
-          <div className="space-y-6">
+          loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+                <p className="text-gray-600">Loading orders...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
             {pastOrders.length === 0 ? (
               <Card className="p-12 text-center">
                 <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -597,6 +551,7 @@ export default function OrdersPage() {
               })
             )}
           </div>
+          )
         )}
       </div>
       </div>

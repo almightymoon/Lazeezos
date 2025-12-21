@@ -17,6 +17,7 @@ export interface Restaurant {
   minOrder?: number;
   isPromoted?: boolean;
   discount?: string;
+  slug?: string;
 }
 
 interface RestaurantCardProps {

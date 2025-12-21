@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock, RotateCcw } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { FilterSidebar, FilterOptions } from '../../components/Filter';
@@ -10,267 +11,19 @@ import { Cart, CartItem } from '../../components/Cart';
 import { Toaster } from '../../components/ui/sonner';
 import { toast } from 'sonner';
 
-// Mock restaurant data
-const restaurants: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Burger Palace',
-    image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['American', 'Burgers', 'Fast Food'],
-    rating: 4.5,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-    isPromoted: true,
-    discount: '20% OFF',
-  },
-  {
-    id: '2',
-    name: 'Pizza Italia',
-    image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Italian', 'Pizza', 'Pasta'],
-    rating: 4.7,
-    deliveryTime: '30-40 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 20.00,
-    discount: '15% OFF',
-  },
-  {
-    id: '3',
-    name: 'Sushi World',
-    image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Japanese', 'Sushi', 'Asian'],
-    rating: 4.8,
-    deliveryTime: '35-45 min',
-    priceRange: '$$$',
-    deliveryFee: 4.99,
-    minOrder: 25.00,
-    isPromoted: true,
-  },
-  {
-    id: '4',
-    name: 'Sweet Treats',
-    image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Desserts', 'Bakery', 'Sweets'],
-    rating: 4.6,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 1.99,
-    minOrder: 10.00,
-  },
-  {
-    id: '5',
-    name: 'Green Bowl',
-    image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Healthy', 'Salads', 'Vegan'],
-    rating: 4.4,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 2.49,
-    minOrder: 12.00,
-    discount: '10% OFF',
-  },
-  {
-    id: '6',
-    name: 'Taco Fiesta',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mexican', 'Tacos', 'Burritos'],
-    rating: 4.3,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-  },
-  {
-    id: '7',
-    name: 'Thai Express',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Thai', 'Asian'],
-    rating: 4.5,
-    deliveryTime: '30-40 min',
-    priceRange: '$$',
-    deliveryFee: 3.49,
-    minOrder: 18.00,
-  },
-  {
-    id: '8',
-    name: 'Mediterranean Grill',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mediterranean', 'Healthy'],
-    rating: 4.7,
-    deliveryTime: '25-35 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 22.00,
-    discount: '25% OFF',
-  },
-];
-
-// Mock menu items
-const menuItemsByRestaurant: Record<string, MenuItem[]> = {
-  '1': [
-    {
-      id: '1-1',
-      name: 'Classic Beef Burger',
-      description: 'Juicy beef patty with lettuce, tomato, and special sauce',
-      price: 12.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-      isPopular: true,
-    },
-    {
-      id: '1-2',
-      name: 'Cheese Burger',
-      description: 'Double cheese with beef patty',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-    },
-    {
-      id: '1-3',
-      name: 'Veggie Burger',
-      description: 'Plant-based patty with fresh vegetables',
-      price: 11.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Burgers',
-      isVeg: true,
-    },
-    {
-      id: '1-4',
-      name: 'French Fries',
-      description: 'Crispy golden fries',
-      price: 4.99,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sides',
-      isVeg: true,
-    },
-  ],
-  '2': [
-    {
-      id: '2-1',
-      name: 'Margherita Pizza',
-      description: 'Classic pizza with tomato sauce, mozzarella, and basil',
-      price: 15.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pizza',
-      isVeg: true,
-      isPopular: true,
-    },
-    {
-      id: '2-2',
-      name: 'Pepperoni Pizza',
-      description: 'Loaded with pepperoni and cheese',
-      price: 17.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pizza',
-    },
-    {
-      id: '2-3',
-      name: 'Carbonara Pasta',
-      description: 'Creamy pasta with bacon and parmesan',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Pasta',
-    },
-  ],
-  '3': [
-    {
-      id: '3-1',
-      name: 'California Roll',
-      description: 'Crab, avocado, and cucumber',
-      price: 12.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sushi Rolls',
-      isPopular: true,
-    },
-    {
-      id: '3-2',
-      name: 'Spicy Tuna Roll',
-      description: 'Tuna with spicy mayo',
-      price: 14.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Sushi Rolls',
-    },
-    {
-      id: '3-3',
-      name: 'Salmon Nigiri',
-      description: 'Fresh salmon over rice',
-      price: 8.99,
-      image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Nigiri',
-    },
-  ],
-  '4': [
-    {
-      id: '4-1',
-      name: 'Chocolate Cake',
-      description: 'Rich chocolate cake with ganache',
-      price: 8.99,
-      image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Cakes',
-      isPopular: true,
-      isVeg: true,
-    },
-    {
-      id: '4-2',
-      name: 'Cheesecake',
-      description: 'New York style cheesecake',
-      price: 9.99,
-      image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Cakes',
-      isVeg: true,
-    },
-  ],
-  '5': [
-    {
-      id: '5-1',
-      name: 'Buddha Bowl',
-      description: 'Quinoa, vegetables, and tahini dressing',
-      price: 13.99,
-      image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Bowls',
-      isVeg: true,
-      isPopular: true,
-    },
-    {
-      id: '5-2',
-      name: 'Greek Salad',
-      description: 'Fresh vegetables with feta cheese',
-      price: 11.99,
-      image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8MTc2NjEyNjM4Nnww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Salads',
-      isVeg: true,
-    },
-  ],
-  '6': [
-    {
-      id: '6-1',
-      name: 'Chicken Tacos',
-      description: 'Grilled chicken with salsa and guacamole',
-      price: 10.99,
-      image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Tacos',
-      isPopular: true,
-    },
-    {
-      id: '6-2',
-      name: 'Burrito Bowl',
-      description: 'Rice, beans, meat, and toppings',
-      price: 13.99,
-      image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8MTc2NjE0OTM5NHww&ixlib=rb-4.1.0&q=80&w=1080',
-      category: 'Bowls',
-    },
-  ],
-};
+// Note: Restaurants and menu items are now fetched from the API
 
 export default function UserDashboard() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('delivery');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [menuItemsByRestaurant, setMenuItemsByRestaurant] = useState<Record<string, MenuItem[]>>({});
+  const [pastOrders, setPastOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterOptions>({
     cuisines: [],
     priceRange: [],
@@ -293,6 +46,62 @@ export default function UserDashboard() {
   const reorderScrollRef = useRef<HTMLDivElement>(null);
   const [showReorderRightArrow, setShowReorderRightArrow] = useState(false);
   const [showReorderLeftArrow, setShowReorderLeftArrow] = useState(false);
+
+  // Fetch restaurants from API
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (filters.cuisines.length > 0) params.append('cuisine', filters.cuisines[0]);
+        
+        const response = await fetch(`/api/restaurants?${params.toString()}`);
+        if (response.ok) {
+          const data = await response.json();
+          setRestaurants(data);
+          
+          // Fetch menu items for each restaurant
+          const menuItemsMap: Record<string, MenuItem[]> = {};
+          for (const restaurant of data) {
+            try {
+              const menuResponse = await fetch(`/api/restaurants/${restaurant.slug}`);
+              if (menuResponse.ok) {
+                const menuData = await menuResponse.json();
+                menuItemsMap[restaurant.id] = menuData.menu || [];
+              }
+            } catch (error) {
+              console.error(`Error fetching menu for ${restaurant.name}:`, error);
+            }
+          }
+          setMenuItemsByRestaurant(menuItemsMap);
+        }
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRestaurants();
+  }, [searchQuery, filters.cuisines]);
+
+  // Fetch past orders for reorder section
+  useEffect(() => {
+    const fetchPastOrders = async () => {
+      try {
+        const response = await fetch('/api/orders');
+        if (response.ok) {
+          const data = await response.json();
+          setPastOrders(data.pastOrders?.slice(0, 5) || []); // Get last 5 orders
+        }
+      } catch (error) {
+        console.error('Error fetching past orders:', error);
+      }
+    };
+
+    fetchPastOrders();
+  }, []);
 
   // Check if scroll is needed for menu
   useEffect(() => {
@@ -925,140 +734,61 @@ export default function UserDashboard() {
                   className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-4 pl-4 md:pl-12 pr-4 md:pr-12"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                 >
-                {/* Reorder Card 1 */}
-                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src="https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
-                      alt="Burger Palace Order" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      Reorder
-                    </div>
+                {pastOrders.length === 0 ? (
+                  <div className="flex-shrink-0 w-full text-center py-8 text-gray-500">
+                    <p>No past orders to reorder</p>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 text-gray-900">Burger Palace</h3>
-                    <p className="text-sm text-gray-500 mb-2">Classic Beef Burger × 2, Fries</p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-gray-900">PKR 1,250</span>
-                      <span className="text-xs text-gray-500">2 days ago</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>25-35 min</span>
-                    </div>
-                  </div>
-                </div>
+                ) : (
+                  pastOrders.map((order) => {
+                    const formatTimeAgo = (dateString: string) => {
+                      const date = new Date(dateString);
+                      const now = new Date();
+                      const diffMs = now.getTime() - date.getTime();
+                      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                      if (diffDays === 0) return 'Today';
+                      if (diffDays === 1) return '1 day ago';
+                      if (diffDays < 7) return `${diffDays} days ago`;
+                      const diffWeeks = Math.floor(diffDays / 7);
+                      return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
+                    };
 
-                {/* Reorder Card 2 */}
-                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src="https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
-                      alt="Pizza Italia Order" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      Reorder
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 text-gray-900">Pizza Italia</h3>
-                    <p className="text-sm text-gray-500 mb-2">Margherita Pizza × 1, Garlic Bread</p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-gray-900">PKR 890</span>
-                      <span className="text-xs text-gray-500">5 days ago</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>30-40 min</span>
-                    </div>
-                  </div>
-                </div>
+                    const itemsSummary = order.items.slice(0, 2).map((item: any) => `${item.name} × ${item.quantity}`).join(', ');
+                    const remainingItems = order.items.length - 2;
+                    const itemsText = remainingItems > 0 ? `${itemsSummary} +${remainingItems} more` : itemsSummary;
 
-                {/* Reorder Card 3 */}
-                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src="https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
-                      alt="Sushi World Order" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      Reorder
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 text-gray-900">Sushi World</h3>
-                    <p className="text-sm text-gray-500 mb-2">California Roll × 3, Miso Soup</p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-gray-900">PKR 2,100</span>
-                      <span className="text-xs text-gray-500">1 week ago</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>35-45 min</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reorder Card 4 */}
-                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
-                      alt="Chicken Express Order" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      Reorder
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 text-gray-900">Chicken Express</h3>
-                    <p className="text-sm text-gray-500 mb-2">Fried Chicken × 1, Coleslaw</p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-gray-900">PKR 450</span>
-                      <span className="text-xs text-gray-500">2 weeks ago</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>20-30 min</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reorder Card 5 */}
-                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src="https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
-                      alt="Sweet Treats Order" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
-                      <RotateCcw className="w-3 h-3" />
-                      Reorder
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-lg mb-1 text-gray-900">Sweet Treats</h3>
-                    <p className="text-sm text-gray-500 mb-2">Chocolate Cake × 1, Coffee</p>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-lg font-bold text-gray-900">PKR 650</span>
-                      <span className="text-xs text-gray-500">3 weeks ago</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-4 h-4" />
-                      <span>20-30 min</span>
-                    </div>
-                  </div>
-                </div>
+                    return (
+                      <div
+                        key={order.id}
+                        className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100"
+                        onClick={() => router.push(`/restaurant/${order.restaurantName.toLowerCase().replace(/\s+/g, '-')}`)}
+                      >
+                        <div className="relative h-40 overflow-hidden">
+                          <img 
+                            src={order.restaurantImage || 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'} 
+                            alt={order.restaurantName} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                            <RotateCcw className="w-3 h-3" />
+                            Reorder
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <h3 className="font-bold text-lg mb-1 text-gray-900">{order.restaurantName}</h3>
+                          <p className="text-sm text-gray-500 mb-2">{itemsText}</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-lg font-bold text-gray-900">PKR {order.total.toLocaleString()}</span>
+                            <span className="text-xs text-gray-500">{formatTimeAgo(order.orderDate)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Clock className="w-4 h-4" />
+                            <span>25-35 min</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
                 </div>
                 {showReorderRightArrow && (
                   <button
