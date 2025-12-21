@@ -143,13 +143,31 @@ export function Header({
 
           {/* Search Bar */}
           <div className="flex-1 max-w-xs relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search for restaurants or dishes..."
-              className="pl-10 w-full border-gray-200 focus:border-pink-400 focus:ring-pink-400"
-              onChange={(e) => onSearch(e.target.value)}
-            />
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const query = formData.get('search') as string;
+                if (query?.trim()) {
+                  router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+                }
+              }}
+              className="relative"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+              <Input
+                name="search"
+                type="text"
+                placeholder="Search for restaurants or dishes..."
+                className="pl-10 w-full border-gray-200 focus:border-pink-400 focus:ring-pink-400"
+                onChange={(e) => onSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+            </form>
           </div>
 
           {/* User Actions */}
