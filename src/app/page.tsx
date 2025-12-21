@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock } from 'lucide-react';
 import { Header } from '../components/Header';
 import { FilterSidebar, FilterOptions } from '../components/Filter';
@@ -266,6 +267,7 @@ const menuItemsByRestaurant: Record<string, MenuItem[]> = {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('delivery');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
@@ -535,7 +537,7 @@ export default function Home() {
       />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-orange-500 to-pink-500 text-white py-8 md:py-12">
+      <div className="bg-gradient-to-r from-orange-500 to-pink-500 text-white py-8 md:py-12 mt-20 md:mt-24">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl mb-3 md:mb-4">Welcome to Lazeezos</h1>
           <p className="text-base sm:text-lg md:text-xl mb-4 md:mb-6 px-2">
@@ -1152,7 +1154,7 @@ export default function Home() {
                 <RestaurantCard
                   key={restaurant.id}
                   restaurant={restaurant}
-                  onClick={() => setSelectedRestaurant(restaurant)}
+                  onClick={() => router.push(`/restaurant/${restaurant.id}`)}
                 />
               ))}
             </div>

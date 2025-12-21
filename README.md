@@ -1,4 +1,4 @@
-# Food Delivery App Replica
+  # Food Delivery App Replica
 
 This is a Next.js application for Food Delivery App Replica. The original project is available at https://www.figma.com/design/SGzUg04hTNzlyZ10JRMKcN/Food-Delivery-App-Replica.
 
@@ -32,3 +32,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 npm run build
 npm start
 ```
+  

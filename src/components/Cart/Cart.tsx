@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../ui/sheet';
@@ -20,10 +21,16 @@ interface CartProps {
 }
 
 export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }: CartProps) {
+  const router = useRouter();
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = 2.99;
   const serviceFee = 1.50;
   const total = subtotal + deliveryFee + serviceFee;
+
+  const handleCheckout = () => {
+    onClose();
+    router.push('/checkout');
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -144,6 +151,7 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
                 </div>
               </div>
               <Button
+                onClick={handleCheckout}
                 className="w-full h-12 text-lg bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
                 size="lg"
               >

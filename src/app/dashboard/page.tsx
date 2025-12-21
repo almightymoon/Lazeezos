@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, RotateCcw } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { FilterSidebar, FilterOptions } from '../../components/Filter';
 import { RestaurantCard, Restaurant } from '../../components/Restaurant';
@@ -290,6 +290,10 @@ export default function UserDashboard() {
   const [showMealsRightArrow, setShowMealsRightArrow] = useState(false);
   const [showMealsLeftArrow, setShowMealsLeftArrow] = useState(false);
 
+  const reorderScrollRef = useRef<HTMLDivElement>(null);
+  const [showReorderRightArrow, setShowReorderRightArrow] = useState(false);
+  const [showReorderLeftArrow, setShowReorderLeftArrow] = useState(false);
+
   // Check if scroll is needed for menu
   useEffect(() => {
     const checkScroll = () => {
@@ -374,6 +378,34 @@ export default function UserDashboard() {
     };
   }, []);
 
+  // Check if scroll is needed for reorder
+  useEffect(() => {
+    const checkScroll = () => {
+      if (reorderScrollRef.current) {
+        const { scrollWidth, clientWidth, scrollLeft } = reorderScrollRef.current;
+        setShowReorderRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+        setShowReorderLeftArrow(scrollLeft > 10);
+      }
+    };
+
+    checkScroll();
+    const timeoutId = setTimeout(checkScroll, 100);
+
+    window.addEventListener('resize', checkScroll);
+    const scrollElement = reorderScrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', checkScroll);
+    }
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', checkScroll);
+      if (scrollElement) {
+        scrollElement.removeEventListener('scroll', checkScroll);
+      }
+    };
+  }, []);
+
   const scrollMenuRight = () => {
     if (menuScrollRef.current) {
       menuScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
@@ -407,6 +439,18 @@ export default function UserDashboard() {
   const scrollMealsLeft = () => {
     if (mealsScrollRef.current) {
       mealsScrollRef.current.scrollBy({ left: -350, behavior: 'smooth' });
+    }
+  };
+
+  const scrollReorderRight = () => {
+    if (reorderScrollRef.current) {
+      reorderScrollRef.current.scrollBy({ left: 350, behavior: 'smooth' });
+    }
+  };
+
+  const scrollReorderLeft = () => {
+    if (reorderScrollRef.current) {
+      reorderScrollRef.current.scrollBy({ left: -350, behavior: 'smooth' });
     }
   };
 
@@ -534,6 +578,7 @@ export default function UserDashboard() {
         onCategoryChange={setSelectedCategory}
       />
 
+      <div className="pt-20 md:pt-24">
       {/* Main Content with Sidebar */}
       <div className="flex flex-col md:flex-row w-full overflow-x-hidden">
         {/* Filter Sidebar */}
@@ -827,6 +872,197 @@ export default function UserDashboard() {
                 {showDealsRightArrow && (
                   <button
                     onClick={scrollDealsRight}
+                    className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-lg rounded-full p-2 hover:bg-pink-50 transition-colors z-10 border border-gray-200"
+                    aria-label="Scroll right"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-pink-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Reorder Section */}
+            <div className="mb-8 md:mb-10">
+              <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Reorder</h2>
+              <div className="relative overflow-hidden">
+                {showReorderLeftArrow && (
+                  <button
+                    onClick={scrollReorderLeft}
+                    className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-lg rounded-full p-2 hover:bg-pink-50 transition-colors z-10 border border-gray-200"
+                    aria-label="Scroll left"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6 text-pink-600"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+                )}
+                <div 
+                  ref={reorderScrollRef}
+                  className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-4 pl-4 md:pl-12 pr-4 md:pr-12"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+                >
+                {/* Reorder Card 1 */}
+                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
+                      alt="Burger Palace Order" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 text-gray-900">Burger Palace</h3>
+                    <p className="text-sm text-gray-500 mb-2">Classic Beef Burger × 2, Fries</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-900">PKR 1,250</span>
+                      <span className="text-xs text-gray-500">2 days ago</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>25-35 min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reorder Card 2 */}
+                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
+                      alt="Pizza Italia Order" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 text-gray-900">Pizza Italia</h3>
+                    <p className="text-sm text-gray-500 mb-2">Margherita Pizza × 1, Garlic Bread</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-900">PKR 890</span>
+                      <span className="text-xs text-gray-500">5 days ago</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>30-40 min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reorder Card 3 */}
+                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
+                      alt="Sushi World Order" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 text-gray-900">Sushi World</h3>
+                    <p className="text-sm text-gray-500 mb-2">California Roll × 3, Miso Soup</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-900">PKR 2,100</span>
+                      <span className="text-xs text-gray-500">1 week ago</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>35-45 min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reorder Card 4 */}
+                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
+                      alt="Chicken Express Order" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 text-gray-900">Chicken Express</h3>
+                    <p className="text-sm text-gray-500 mb-2">Fried Chicken × 1, Coleslaw</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-900">PKR 450</span>
+                      <span className="text-xs text-gray-500">2 weeks ago</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>20-30 min</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reorder Card 5 */}
+                <div className="flex-shrink-0 w-64 md:w-72 group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100">
+                  <div className="relative h-40 overflow-hidden">
+                    <img 
+                      src="https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" 
+                      alt="Sweet Treats Order" 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1">
+                      <RotateCcw className="w-3 h-3" />
+                      Reorder
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold text-lg mb-1 text-gray-900">Sweet Treats</h3>
+                    <p className="text-sm text-gray-500 mb-2">Chocolate Cake × 1, Coffee</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-lg font-bold text-gray-900">PKR 650</span>
+                      <span className="text-xs text-gray-500">3 weeks ago</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      <span>20-30 min</span>
+                    </div>
+                  </div>
+                </div>
+                </div>
+                {showReorderRightArrow && (
+                  <button
+                    onClick={scrollReorderRight}
                     className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-lg rounded-full p-2 hover:bg-pink-50 transition-colors z-10 border border-gray-200"
                     aria-label="Scroll right"
                   >
@@ -1152,6 +1388,7 @@ export default function UserDashboard() {
         onRemoveItem={handleRemoveItem}
       />
       <Toaster />
+      </div>
     </div>
   );
 }
