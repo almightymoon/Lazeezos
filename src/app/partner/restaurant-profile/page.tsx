@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,7 +20,8 @@ import {
   ChefHat,
   Globe,
   Building2,
-  FileText
+  FileText,
+  Loader2
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card } from '../../../components/ui/card';
@@ -33,7 +34,7 @@ import { Separator } from '../../../components/ui/separator';
 import { toast } from 'sonner';
 import { Toaster } from '../../../components/ui/sonner';
 
-const operatingHours = [
+const defaultOperatingHours = [
   { day: 'Monday', open: '09:00', close: '22:00' },
   { day: 'Tuesday', open: '09:00', close: '22:00' },
   { day: 'Wednesday', open: '09:00', close: '22:00' },
@@ -43,35 +44,140 @@ const operatingHours = [
   { day: 'Sunday', open: '10:00', close: '22:00' },
 ];
 
+interface RestaurantProfile {
+  name: string;
+  description: string;
+  email: string;
+  phone: string;
+  businessPhone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  cuisineTypes: string[];
+  restaurantType: string;
+  isOpen: boolean;
+  isPromoted: boolean;
+  deliveryFee: number;
+  minOrder: number;
+  priceRange: string;
+  operatingHours: Array<{ day: string; open: string; close: string }>;
+}
+
 export default function RestaurantProfilePage() {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    name: 'Burger Palace',
-    description: 'Delicious burgers made with fresh ingredients',
-    email: 'contact@burgerpalace.com',
-    phone: '+92 300 1234567',
-    businessPhone: '+92 300 1234568',
-    address: '123 Main Street',
-    city: 'Karachi',
-    state: 'Sindh',
-    zipCode: '75500',
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState<RestaurantProfile>({
+    name: '',
+    description: '',
+    email: '',
+    phone: '',
+    businessPhone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
     country: 'Pakistan',
-    cuisineTypes: ['American', 'Burgers', 'Fast Food'],
-    restaurantType: 'FAST_FOOD',
-    isOpen: true,
+    cuisineTypes: [],
+    restaurantType: 'RESTAURANT',
+    isOpen: false,
     isPromoted: false,
-    deliveryFee: 2.99,
-    minOrder: 15.00,
+    deliveryFee: 0,
+    minOrder: 0,
     priceRange: '$$',
-    operatingHours: operatingHours,
+    operatingHours: defaultOperatingHours,
   });
 
   const [cuisineInput, setCuisineInput] = useState('');
 
-  const handleSave = () => {
-    toast.success('Restaurant profile updated successfully!');
-    setIsEditing(false);
+  // Fetch restaurant profile on mount
+  useEffect(() => {
+    fetchRestaurantProfile();
+  }, []);
+
+  const fetchRestaurantProfile = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/partner/restaurant-profile');
+      if (!response.ok) {
+        throw new Error('Failed to fetch restaurant profile');
+      }
+      const data = await response.json();
+      if (data.restaurant) {
+        setFormData({
+          name: data.restaurant.name || '',
+          description: data.restaurant.description || '',
+          email: data.restaurant.email || '',
+          phone: data.restaurant.phone || '',
+          businessPhone: data.restaurant.businessPhone || '',
+          address: data.restaurant.address || '',
+          city: data.restaurant.city || '',
+          state: data.restaurant.state || '',
+          zipCode: data.restaurant.zipCode || '',
+          country: data.restaurant.country || 'Pakistan',
+          cuisineTypes: data.restaurant.cuisineTypes || [],
+          restaurantType: data.restaurant.restaurantType || 'RESTAURANT',
+          isOpen: data.restaurant.isOpen || false,
+          isPromoted: data.restaurant.isPromoted || false,
+          deliveryFee: data.restaurant.deliveryFee || 0,
+          minOrder: data.restaurant.minOrder || 0,
+          priceRange: data.restaurant.priceRange || '$$',
+          operatingHours: data.restaurant.operatingHours || defaultOperatingHours,
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant profile:', error);
+      toast.error('Failed to load restaurant profile');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Validate required fields
+      if (!formData.name || !formData.email || !formData.phone || !formData.address || 
+          !formData.city || !formData.state || !formData.zipCode || !formData.country) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+
+      const response = await fetch('/api/partner/restaurant-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update restaurant profile');
+      }
+
+      const data = await response.json();
+      
+      // Update form data with response data
+      if (data.restaurant) {
+        setFormData({
+          ...formData,
+          ...data.restaurant,
+        });
+      }
+
+      toast.success('Restaurant profile updated successfully!');
+      setIsEditing(false);
+    } catch (error: any) {
+      console.error('Error saving restaurant profile:', error);
+      toast.error(error.message || 'Failed to update restaurant profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const addCuisine = () => {
@@ -133,24 +239,39 @@ export default function RestaurantProfilePage() {
               </h1>
               <p className="text-gray-600">Manage your restaurant information and settings</p>
             </div>
-            <Button
-              onClick={isEditing ? handleSave : () => setIsEditing(true)}
-              className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 hover:from-orange-600 hover:via-pink-600 hover:to-purple-600 text-white"
-            >
-              {isEditing ? (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
-              ) : (
-                <>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </>
-              )}
-            </Button>
+            {!isLoading && (
+              <Button
+                onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                disabled={isSaving}
+                className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 hover:from-orange-600 hover:via-pink-600 hover:to-purple-600 text-white"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : isEditing ? (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Changes
+                  </>
+                ) : (
+                  <>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+            <span className="ml-3 text-gray-600">Loading restaurant profile...</span>
+          </div>
+        ) : (
 
         <div className="space-y-6">
           {/* Restaurant Status Card */}
@@ -546,8 +667,10 @@ export default function RestaurantProfilePage() {
             </div>
           </Card>
         </div>
+        )}
       </div>
     </div>
   );
 }
+
 
