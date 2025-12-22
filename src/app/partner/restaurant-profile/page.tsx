@@ -63,6 +63,9 @@ interface RestaurantProfile {
   minOrder: number;
   priceRange: string;
   operatingHours: Array<{ day: string; open: string; close: string }>;
+  logo?: string;
+  coverImage?: string;
+  images?: string[];
 }
 
 export default function RestaurantProfilePage() {
@@ -89,9 +92,13 @@ export default function RestaurantProfilePage() {
     minOrder: 0,
     priceRange: '$$',
     operatingHours: defaultOperatingHours,
+    logo: '',
+    coverImage: '',
+    images: [],
   });
 
   const [cuisineInput, setCuisineInput] = useState('');
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null); // 'logo', 'cover', or 'gallery'
 
   // Fetch restaurant profile on mount
   useEffect(() => {
@@ -132,6 +139,9 @@ export default function RestaurantProfilePage() {
           minOrder: data.restaurant.minOrder || 0,
           priceRange: data.restaurant.priceRange || '$$',
           operatingHours: data.restaurant.operatingHours || defaultOperatingHours,
+          logo: data.restaurant.logo || '',
+          coverImage: data.restaurant.coverImage || '',
+          images: data.restaurant.images || [],
         });
       }
     } catch (error) {
@@ -222,6 +232,74 @@ export default function RestaurantProfilePage() {
       ...formData,
       cuisineTypes: formData.cuisineTypes.filter(c => c !== cuisine),
     });
+  };
+
+  const handleImageUpload = async (type: 'logo' | 'cover' | 'gallery', file: File) => {
+    try {
+      setUploadingImage(type);
+      
+      // Get restaurant ID or slug from localStorage
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
+      const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
+
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+      uploadFormData.append('type', type);
+      if (restaurantId) uploadFormData.append('restaurantId', restaurantId);
+      if (restaurantSlug) uploadFormData.append('restaurantSlug', restaurantSlug);
+
+      const response = await fetch('/api/partner/upload-image', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+
+      // Update form data with the new image URL
+      if (type === 'logo') {
+        setFormData({ ...formData, logo: data.url });
+      } else if (type === 'cover') {
+        setFormData({ ...formData, coverImage: data.url });
+      } else if (type === 'gallery') {
+        setFormData({ ...formData, images: [...(formData.images || []), data.url] });
+      }
+
+      toast.success('Image uploaded successfully!');
+      
+      // Automatically save the profile with the new image
+      await handleSave();
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast.error(error.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(null);
+    }
+  };
+
+  const handleImageRemove = async (type: 'logo' | 'cover' | 'gallery', index?: number) => {
+    try {
+      if (type === 'logo') {
+        setFormData({ ...formData, logo: '' });
+      } else if (type === 'cover') {
+        setFormData({ ...formData, coverImage: '' });
+      } else if (type === 'gallery' && index !== undefined) {
+        const newImages = [...(formData.images || [])];
+        newImages.splice(index, 1);
+        setFormData({ ...formData, images: newImages });
+      }
+      
+      // Automatically save the profile
+      await handleSave();
+      toast.success('Image removed successfully!');
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast.error('Failed to remove image');
+    }
   };
 
   return (
@@ -648,14 +726,61 @@ export default function RestaurantProfilePage() {
               <div>
                 <Label>Logo</Label>
                 <div className="mt-2 flex items-center gap-4">
-                  <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <ImageIcon className="w-8 h-8 text-gray-400" />
-                  </div>
+                  {formData.logo ? (
+                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-200">
+                      <img
+                        src={formData.logo}
+                        alt="Restaurant logo"
+                        className="w-full h-full object-cover"
+                      />
+                      {isEditing && (
+                        <button
+                          onClick={() => handleImageRemove('logo')}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                          aria-label="Remove logo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
                   {isEditing && (
-                    <Button variant="outline">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Logo
-                    </Button>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload('logo', file);
+                          }
+                        }}
+                        className="hidden"
+                        id="logo-upload"
+                        disabled={uploadingImage === 'logo'}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => document.getElementById('logo-upload')?.click()}
+                        disabled={uploadingImage === 'logo'}
+                      >
+                        {uploadingImage === 'logo' ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Logo
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -663,14 +788,61 @@ export default function RestaurantProfilePage() {
               <div>
                 <Label>Cover Image</Label>
                 <div className="mt-2 flex items-center gap-4">
-                  <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <ImageIcon className="w-12 h-12 text-gray-400" />
-                  </div>
+                  {formData.coverImage ? (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200">
+                      <img
+                        src={formData.coverImage}
+                        alt="Restaurant cover"
+                        className="w-full h-full object-cover"
+                      />
+                      {isEditing && (
+                        <button
+                          onClick={() => handleImageRemove('cover')}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
+                          aria-label="Remove cover image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
                   {isEditing && (
-                    <Button variant="outline">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Cover
-                    </Button>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleImageUpload('cover', file);
+                          }
+                        }}
+                        className="hidden"
+                        id="cover-upload"
+                        disabled={uploadingImage === 'cover'}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => document.getElementById('cover-upload')?.click()}
+                        disabled={uploadingImage === 'cover'}
+                      >
+                        {uploadingImage === 'cover' ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 mr-2" />
+                            Upload Cover
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -678,17 +850,65 @@ export default function RestaurantProfilePage() {
               <div>
                 <Label>Gallery Images</Label>
                 <div className="mt-2 grid grid-cols-3 gap-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                  {formData.images && formData.images.length > 0 ? (
+                    formData.images.map((image, index) => (
+                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={image}
+                          alt={`Gallery image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {isEditing && (
+                          <button
+                            onClick={() => handleImageRemove('gallery', index)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                            aria-label="Remove image"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
                       <ImageIcon className="w-8 h-8 text-gray-400" />
                     </div>
-                  ))}
+                  )}
                 </div>
                 {isEditing && (
-                  <Button variant="outline" className="mt-4">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Images
-                  </Button>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleImageUpload('gallery', file);
+                        }
+                      }}
+                      className="hidden"
+                      id="gallery-upload"
+                      disabled={uploadingImage === 'gallery'}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('gallery-upload')?.click()}
+                      disabled={uploadingImage === 'gallery'}
+                      className="mt-4"
+                    >
+                      {uploadingImage === 'gallery' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Images
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>

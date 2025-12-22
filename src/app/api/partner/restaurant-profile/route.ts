@@ -156,6 +156,9 @@ export async function PUT(request: Request) {
       minOrder,
       priceRange,
       operatingHours,
+      logo,
+      coverImage,
+      images,
     } = body;
 
     // Validate required fields
@@ -273,6 +276,9 @@ export async function PUT(request: Request) {
         minOrder: minOrder !== undefined ? minOrder : existingRestaurant.minOrder,
         priceRange: priceRange || existingRestaurant.priceRange,
         operatingHours: operatingHoursJson || existingRestaurant.operatingHours,
+        logo: logo !== undefined ? logo : existingRestaurant.logo,
+        coverImage: coverImage !== undefined ? coverImage : existingRestaurant.coverImage,
+        images: images !== undefined ? images : existingRestaurant.images,
       },
     });
 
