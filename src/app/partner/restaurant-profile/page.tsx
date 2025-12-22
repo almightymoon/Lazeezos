@@ -101,7 +101,13 @@ export default function RestaurantProfilePage() {
   const fetchRestaurantProfile = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/partner/restaurant-profile');
+      // Get restaurant ID or slug from localStorage if available
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
+      const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
+      const profileUrl = restaurantId || restaurantSlug 
+        ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+        : '/api/partner/restaurant-profile';
+      const response = await fetch(profileUrl);
       if (!response.ok) {
         throw new Error('Failed to fetch restaurant profile');
       }
@@ -147,7 +153,14 @@ export default function RestaurantProfilePage() {
         return;
       }
 
-      const response = await fetch('/api/partner/restaurant-profile', {
+      // Get restaurant ID or slug from localStorage if available
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
+      const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
+      const profileUrl = restaurantId || restaurantSlug 
+        ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+        : '/api/partner/restaurant-profile';
+      
+      const response = await fetch(profileUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -168,10 +181,24 @@ export default function RestaurantProfilePage() {
           ...formData,
           ...data.restaurant,
         });
+        // Update localStorage with the latest restaurant name and slug
+        if (typeof window !== 'undefined') {
+          if (data.restaurant.name) {
+            localStorage.setItem('restaurantName', data.restaurant.name);
+          }
+          if (data.restaurant.slug) {
+            localStorage.setItem('restaurantSlug', data.restaurant.slug);
+          }
+        }
       }
 
       toast.success('Restaurant profile updated successfully!');
       setIsEditing(false);
+      
+      // Trigger a refresh event to update other components (like dashboard)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('restaurantProfileUpdated'));
+      }
     } catch (error: any) {
       console.error('Error saving restaurant profile:', error);
       toast.error(error.message || 'Failed to update restaurant profile');

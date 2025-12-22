@@ -10,7 +10,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { toast } from 'sonner';
 import { Toaster } from '../../../components/ui/sonner';
-import { ArrowRight, Sparkles, Check, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Sparkles, Check, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { ImageWithFallback } from '../../../components/figma/ImageWithFallback';
 
 export default function PartnerSignUpPage() {
@@ -20,12 +20,17 @@ export default function PartnerSignUpPage() {
     ownerName: '',
     email: '',
     phone: '',
+    password: '',
+    confirmPassword: '',
     businessType: '',
     address: '',
     agreeToTerms: false,
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.agreeToTerms) {
@@ -33,8 +38,64 @@ export default function PartnerSignUpPage() {
       return;
     }
 
-    toast.success('Account created successfully!');
-    router.push('/partner/dashboard');
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match!');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/partner/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          restaurantName: formData.restaurantName,
+          ownerName: formData.ownerName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          businessType: formData.businessType,
+          address: formData.address,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Failed to create account');
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast.success(data.message || 'Account created successfully!');
+      
+      // Set login state and store restaurant info
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('userRole', 'RESTAURANT_OWNER');
+      if (data.restaurant) {
+        localStorage.setItem('restaurantId', data.restaurant.id);
+        localStorage.setItem('restaurantSlug', data.restaurant.slug);
+        localStorage.setItem('restaurantName', data.restaurant.name);
+      }
+      window.dispatchEvent(new Event('loginStateChange'));
+      
+      // Redirect to dashboard
+      setTimeout(() => {
+        router.push('/partner/dashboard');
+      }, 1000);
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('An error occurred. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const benefits = [
@@ -199,6 +260,63 @@ export default function PartnerSignUpPage() {
                 </div>
               </div>
 
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="password" className="text-base font-medium">Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      placeholder="Create a strong password"
+                      className="mt-1.5 h-10 text-base pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword" className="text-base font-medium">Confirm Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        setFormData({ ...formData, confirmPassword: e.target.value })
+                      }
+                      placeholder="Confirm your password"
+                      className="mt-1.5 h-10 text-base pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="businessType" className="text-base font-medium">Business Type *</Label>
                 <Select
@@ -268,10 +386,11 @@ export default function PartnerSignUpPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 h-11 text-base shadow-xl hover:shadow-2xl transition-all text-white mt-3"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 h-11 text-base shadow-xl hover:shadow-2xl transition-all text-white mt-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Submit Application
-                <ArrowRight className="ml-2 w-4 h-4" />
+                {isSubmitting ? 'Creating Account...' : 'Submit Application'}
+                {!isSubmitting && <ArrowRight className="ml-2 w-4 h-4" />}
               </Button>
             </form>
 

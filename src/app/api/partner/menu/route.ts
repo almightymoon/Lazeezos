@@ -1,20 +1,58 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
-    // For now, get the first restaurant (for demo)
-    // In production, get from authenticated session
-    const restaurant = await prisma.restaurant.findFirst({
-      include: {
-        menu: {
-          orderBy: [
-            { category: 'asc' },
-            { name: 'asc' },
-          ],
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurantId');
+    const restaurantSlug = searchParams.get('restaurantSlug');
+    
+    // Get restaurant - try by ID or slug first, then fallback to most recent
+    let restaurant;
+    if (restaurantId) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+        include: {
+          menu: {
+            orderBy: [
+              { category: 'asc' },
+              { name: 'asc' },
+            ],
+          },
         },
-      },
-    });
+      });
+    } else if (restaurantSlug) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { slug: restaurantSlug },
+        include: {
+          menu: {
+            orderBy: [
+              { category: 'asc' },
+              { name: 'asc' },
+            ],
+          },
+        },
+      });
+    }
+    
+    // Fallback to most recently created restaurant
+    if (!restaurant) {
+      restaurant = await prisma.restaurant.findFirst({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          menu: {
+            orderBy: [
+              { category: 'asc' },
+              { name: 'asc' },
+            ],
+          },
+        },
+      });
+    }
 
     if (!restaurant) {
       return NextResponse.json({ menuItems: [] });
@@ -48,7 +86,29 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const restaurant = await prisma.restaurant.findFirst();
+    const restaurantId = body.restaurantId;
+    const restaurantSlug = body.restaurantSlug;
+    
+    // Get restaurant - try by ID or slug first, then fallback to most recent
+    let restaurant;
+    if (restaurantId) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+      });
+    } else if (restaurantSlug) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { slug: restaurantSlug },
+      });
+    }
+    
+    // Fallback to most recently created restaurant
+    if (!restaurant) {
+      restaurant = await prisma.restaurant.findFirst({
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    }
 
     if (!restaurant) {
       return NextResponse.json(
@@ -73,7 +133,16 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ menuItem });
+    console.log(`✅ Created menu item "${menuItem.name}" for restaurant "${restaurant.name}" (slug: ${restaurant.slug})`);
+
+    return NextResponse.json({ 
+      menuItem,
+      restaurant: {
+        id: restaurant.id,
+        name: restaurant.name,
+        slug: restaurant.slug,
+      },
+    });
   } catch (error) {
     console.error('Error creating menu item:', error);
     return NextResponse.json(

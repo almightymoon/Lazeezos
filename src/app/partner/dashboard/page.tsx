@@ -144,18 +144,29 @@ export default function PartnerDashboard() {
       try {
         setLoading(true);
         
+        // Get restaurant ID or slug from localStorage (used for multiple API calls)
+        const restaurantId = localStorage.getItem('restaurantId');
+        const restaurantSlug = localStorage.getItem('restaurantSlug');
+        
         // Fetch restaurant profile to get restaurant name and location
-        const profileResponse = await fetch('/api/partner/restaurant-profile');
+        const profileUrl = restaurantId || restaurantSlug 
+          ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+          : '/api/partner/restaurant-profile';
+        const profileResponse = await fetch(profileUrl);
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
           if (profileData.restaurant) {
             if (profileData.restaurant.name) {
               setRestaurantName(profileData.restaurant.name);
+              // Update localStorage with the latest restaurant name
+              localStorage.setItem('restaurantName', profileData.restaurant.name);
             }
             if (profileData.restaurant.city && profileData.restaurant.country) {
               setRestaurantLocation(`${profileData.restaurant.city}, ${profileData.restaurant.country}`);
             }
           }
+        } else {
+          console.error('Failed to fetch restaurant profile:', profileResponse.status);
         }
         
         // Fetch stats
@@ -166,8 +177,6 @@ export default function PartnerDashboard() {
         }
 
         // Fetch menu items - include restaurant info from localStorage
-        const restaurantId = localStorage.getItem('restaurantId');
-        const restaurantSlug = localStorage.getItem('restaurantSlug');
         const menuUrl = restaurantId || restaurantSlug 
           ? `/api/partner/menu?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
           : '/api/partner/menu';
@@ -191,6 +200,16 @@ export default function PartnerDashboard() {
     };
 
     fetchData();
+    
+    // Listen for restaurant profile updates
+    const handleProfileUpdate = () => {
+      fetchData();
+    };
+    window.addEventListener('restaurantProfileUpdated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('restaurantProfileUpdated', handleProfileUpdate);
+    };
   }, []);
 
   // Calculate top items from menu items (mock for now)

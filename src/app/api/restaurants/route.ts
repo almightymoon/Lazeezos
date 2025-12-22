@@ -11,7 +11,9 @@ export async function GET(request: Request) {
     const isPromoted = searchParams.get('isPromoted');
 
     const where: any = {
-      status: 'ACTIVE',
+      status: {
+        in: ['ACTIVE', 'PENDING'], // Show both active and pending restaurants
+      },
       city: city,
     };
 

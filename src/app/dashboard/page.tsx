@@ -703,7 +703,8 @@ export default function UserDashboard() {
               </div>
             </div>
 
-            {/* Reorder Section */}
+            {/* Reorder Section - Only show if there are past orders */}
+            {pastOrders.length > 0 && (
             <div className="mb-8 md:mb-10">
               <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Reorder</h2>
               <div className="relative overflow-hidden">
@@ -734,12 +735,7 @@ export default function UserDashboard() {
                   className="flex gap-4 md:gap-6 overflow-x-auto scrollbar-hide pb-4 pl-4 md:pl-12 pr-4 md:pr-12"
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
                 >
-                {pastOrders.length === 0 ? (
-                  <div className="flex-shrink-0 w-full text-center py-8 text-gray-500">
-                    <p>No past orders to reorder</p>
-                  </div>
-                ) : (
-                  pastOrders.map((order) => {
+                {pastOrders.map((order) => {
                     const formatTimeAgo = (dateString: string) => {
                       const date = new Date(dateString);
                       const now = new Date();
@@ -787,8 +783,7 @@ export default function UserDashboard() {
                         </div>
                       </div>
                     );
-                  })
-                )}
+                  })}
                 </div>
                 {showReorderRightArrow && (
                   <button
@@ -814,6 +809,7 @@ export default function UserDashboard() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Discounted Meals Section */}
             <div className="mb-8 md:mb-10">

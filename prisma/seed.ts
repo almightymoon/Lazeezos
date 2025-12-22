@@ -166,7 +166,7 @@ async function main() {
       },
       {
         email: 'tacofiesta@example.com',
-        phone: '+923001111111',
+        phone: '+923001616161',
         firstName: 'Taco',
         lastName: 'Fiesta Owner',
         role: UserRole.RESTAURANT_OWNER,
@@ -265,7 +265,7 @@ async function main() {
       cuisineTypes: ['American', 'Burgers', 'Fast Food'],
       restaurantType: RestaurantType.FAST_FOOD,
       email: 'info@burgerpalace.com',
-      phone: '+923001234567',
+      phone: '+923006666666',
       address: '123 Main Street',
       city: 'Karachi',
       state: 'Sindh',

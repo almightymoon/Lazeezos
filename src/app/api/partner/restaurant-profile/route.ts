@@ -6,21 +6,59 @@ export const dynamic = 'force-dynamic';
 // GET restaurant profile
 export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurantId');
+    const restaurantSlug = searchParams.get('restaurantSlug');
+    
     // TODO: In production, get restaurant from authenticated session
-    // For now, get the first restaurant (demo purposes)
-    const restaurant = await prisma.restaurant.findFirst({
-      include: {
-        owner: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            phone: true,
+    // For now, get restaurant by ID/slug if provided, otherwise get first restaurant (demo purposes)
+    let restaurant;
+    if (restaurantId) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else if (restaurantSlug) {
+      restaurant = await prisma.restaurant.findUnique({
+        where: { slug: restaurantSlug },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      });
+    } else {
+      // Fallback to first restaurant if no ID/slug provided
+      restaurant = await prisma.restaurant.findFirst({
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              phone: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!restaurant) {
       return NextResponse.json(
@@ -146,8 +184,24 @@ export async function PUT(request: Request) {
     }
 
     // TODO: In production, get restaurant from authenticated session
-    // For now, get the first restaurant (demo purposes)
-    const existingRestaurant = await prisma.restaurant.findFirst();
+    // For now, get restaurant by ID/slug if provided, otherwise get first restaurant (demo purposes)
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurantId');
+    const restaurantSlug = searchParams.get('restaurantSlug');
+    
+    let existingRestaurant;
+    if (restaurantId) {
+      existingRestaurant = await prisma.restaurant.findUnique({
+        where: { id: restaurantId },
+      });
+    } else if (restaurantSlug) {
+      existingRestaurant = await prisma.restaurant.findUnique({
+        where: { slug: restaurantSlug },
+      });
+    } else {
+      // Fallback to first restaurant if no ID/slug provided
+      existingRestaurant = await prisma.restaurant.findFirst();
+    }
 
     if (!existingRestaurant) {
       return NextResponse.json(
