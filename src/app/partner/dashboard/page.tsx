@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -104,6 +105,7 @@ interface Order {
 }
 
 export default function PartnerDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPeriod, setSelectedPeriod] = useState<'today' | 'week' | 'month'>('week');
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -114,6 +116,8 @@ export default function PartnerDashboard() {
     customers: { value: 0, change: 0, period: 'new this week' },
     rating: { value: 0, change: 0, period: 'from 0' },
   });
+  const [restaurantName, setRestaurantName] = useState('Restaurant Owner');
+  const [restaurantLocation, setRestaurantLocation] = useState('Karachi, Pakistan');
   const [loading, setLoading] = useState(true);
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
@@ -140,6 +144,20 @@ export default function PartnerDashboard() {
       try {
         setLoading(true);
         
+        // Fetch restaurant profile to get restaurant name and location
+        const profileResponse = await fetch('/api/partner/restaurant-profile');
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          if (profileData.restaurant) {
+            if (profileData.restaurant.name) {
+              setRestaurantName(profileData.restaurant.name);
+            }
+            if (profileData.restaurant.city && profileData.restaurant.country) {
+              setRestaurantLocation(`${profileData.restaurant.city}, ${profileData.restaurant.country}`);
+            }
+          }
+        }
+        
         // Fetch stats
         const statsResponse = await fetch('/api/partner/stats');
         if (statsResponse.ok) {
@@ -147,8 +165,13 @@ export default function PartnerDashboard() {
           setStats(statsData);
         }
 
-        // Fetch menu items
-        const menuResponse = await fetch('/api/partner/menu');
+        // Fetch menu items - include restaurant info from localStorage
+        const restaurantId = localStorage.getItem('restaurantId');
+        const restaurantSlug = localStorage.getItem('restaurantSlug');
+        const menuUrl = restaurantId || restaurantSlug 
+          ? `/api/partner/menu?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+          : '/api/partner/menu';
+        const menuResponse = await fetch(menuUrl);
         if (menuResponse.ok) {
           const menuData = await menuResponse.json();
           setMenuItems(menuData.menuItems || []);
@@ -260,10 +283,17 @@ export default function PartnerDashboard() {
           toast.error('Failed to update menu item');
         }
       } else {
+        // Include restaurant info when creating menu item
+        const restaurantId = localStorage.getItem('restaurantId');
+        const restaurantSlug = localStorage.getItem('restaurantSlug');
         const response = await fetch('/api/partner/menu', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(menuFormData),
+          body: JSON.stringify({
+            ...menuFormData,
+            restaurantId,
+            restaurantSlug,
+          }),
         });
         if (response.ok) {
           const newItem = await response.json();
@@ -393,49 +423,178 @@ export default function PartnerDashboard() {
 
             {/* User Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
-              </Button>
-              <Button variant="ghost" size="icon">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="w-5 h-5 text-gray-600" />
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 z-[100]">
+                  <DropdownMenuLabel className="flex items-center justify-between">
+                    <span>Notifications</span>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push('/notifications');
+                      }}
+                      className="text-xs text-orange-500 hover:text-orange-600"
+                    >
+                      View All
+                    </button>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <div className="max-h-96 overflow-y-auto">
+                    <div
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push('/partner/dashboard');
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">New Order Received</p>
+                          <p className="text-xs text-gray-600">Order #ORD-001 has been placed</p>
+                          <p className="text-xs text-gray-400 mt-1">2 minutes ago</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push('/partner/dashboard');
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">Payment Received</p>
+                          <p className="text-xs text-gray-600">Payment for order #ORD-002 has been processed</p>
+                          <p className="text-xs text-gray-400 mt-1">15 minutes ago</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      className="p-3 hover:bg-gray-50 cursor-pointer border-b"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push('/partner/restaurant-profile');
+                      }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold">Profile Update Required</p>
+                          <p className="text-xs text-gray-600">Please update your restaurant profile</p>
+                          <p className="text-xs text-gray-400 mt-1">1 hour ago</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/notifications');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    View All Notifications
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => router.push('/partner/profile')}
+              >
                 <Settings className="w-5 h-5 text-gray-600" />
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+                  >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center text-white font-bold">
-                      R
+                      {restaurantName.charAt(0).toUpperCase()}
                     </div>
-                    <span className="hidden md:inline">Restaurant Owner</span>
-                  </Button>
+                    <span className="hidden md:inline text-gray-900 font-medium">{restaurantName}</span>
+                  </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 z-[100]">
                   <DropdownMenuLabel>My Account</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/partner/profile" className="cursor-pointer flex items-center gap-2">
-                      <Settings className="w-4 h-4" />
-                      Profile Settings
-                    </Link>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/partner/profile');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Profile Settings
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Restaurant</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/partner/restaurant-profile" className="cursor-pointer flex items-center gap-2">
-                      <Store className="w-4 h-4" />
-                      Restaurant Profile
-                    </Link>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/partner/restaurant-profile');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Store className="w-4 h-4 mr-2" />
+                    Restaurant Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/partner/dashboard');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Dashboard
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/" className="cursor-pointer flex items-center gap-2">
-                      <ArrowLeft className="w-4 h-4" />
-                      Back to Home
-                    </Link>
+                  <DropdownMenuLabel>Support</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/help');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Help Center
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer">
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      router.push('/');
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Home
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      // Handle logout
+                      localStorage.removeItem('isLoggedIn');
+                      router.push('/partner/login');
+                    }}
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                  >
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -499,7 +658,7 @@ export default function PartnerDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold mb-2">
-                    Welcome back, <span className="bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">Restaurant Owner</span>
+                    Welcome back, <span className="bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{restaurantName}</span>
                   </h1>
                   <p className="text-gray-600">Here's what's happening with your restaurant today</p>
                 </div>
@@ -519,11 +678,11 @@ export default function PartnerDashboard() {
                       <ChefHat className="w-8 h-8" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold mb-1">Burger Palace</h2>
+                      <h2 className="text-2xl font-bold mb-1">{restaurantName}</h2>
                       <div className="flex items-center gap-4 text-sm opacity-90">
                         <div className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />
-                          <span>Karachi, Pakistan</span>
+                          <span>{restaurantLocation}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
