@@ -173,7 +173,12 @@ export default function Home() {
         if (searchQuery) params.append('search', searchQuery);
         if (filters.cuisines.length > 0) params.append('cuisine', filters.cuisines[0]);
         
-        const response = await fetch(`/api/restaurants?${params.toString()}`);
+        const response = await fetch(`/api/restaurants?${params.toString()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         if (response.ok) {
           const data = await response.json();
           setRestaurants(data);
@@ -182,7 +187,12 @@ export default function Home() {
           const menuItemsMap: Record<string, MenuItem[]> = {};
           for (const restaurant of data) {
             try {
-              const menuResponse = await fetch(`/api/restaurants/${restaurant.slug}`);
+              const menuResponse = await fetch(`/api/restaurants/${restaurant.slug}`, {
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                },
+              });
               if (menuResponse.ok) {
                 const menuData = await menuResponse.json();
                 menuItemsMap[restaurant.id] = menuData.menu || [];
@@ -201,6 +211,59 @@ export default function Home() {
     };
 
     fetchRestaurants();
+  }, [searchQuery, filters.cuisines]);
+
+  // Refresh data when page becomes visible (user switches back to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Refresh restaurants when user comes back to the page
+        const fetchRestaurants = async () => {
+          try {
+            const params = new URLSearchParams();
+            if (searchQuery) params.append('search', searchQuery);
+            if (filters.cuisines.length > 0) params.append('cuisine', filters.cuisines[0]);
+            
+            const response = await fetch(`/api/restaurants?${params.toString()}`, {
+              cache: 'no-store',
+              headers: {
+                'Cache-Control': 'no-cache',
+              },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setRestaurants(data);
+              
+              // Fetch menu items for each restaurant
+              const menuItemsMap: Record<string, MenuItem[]> = {};
+              for (const restaurant of data) {
+                try {
+                  const menuResponse = await fetch(`/api/restaurants/${restaurant.slug}`, {
+                    cache: 'no-store',
+                    headers: {
+                      'Cache-Control': 'no-cache',
+                    },
+                  });
+                  if (menuResponse.ok) {
+                    const menuData = await menuResponse.json();
+                    menuItemsMap[restaurant.id] = menuData.menu || [];
+                  }
+                } catch (error) {
+                  console.error(`Error fetching menu for ${restaurant.name}:`, error);
+                }
+              }
+              setMenuItemsByRestaurant(menuItemsMap);
+            }
+          } catch (error) {
+            console.error('Error fetching restaurants:', error);
+          }
+        };
+        fetchRestaurants();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [searchQuery, filters.cuisines]);
 
   // Filter restaurants based on filters and search

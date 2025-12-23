@@ -28,15 +28,30 @@ export default function RestaurantDetailPage() {
       try {
         setLoading(true);
         // Try fetching by slug first, then by id if that fails
-        let response = await fetch(`/api/restaurants/${restaurantSlug}`);
+        let response = await fetch(`/api/restaurants/${restaurantSlug}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
         if (!response.ok) {
           // If slug fails, try fetching all restaurants and find by id
-          const allRestaurants = await fetch('/api/restaurants');
+          const allRestaurants = await fetch('/api/restaurants', {
+            cache: 'no-store',
+            headers: {
+              'Cache-Control': 'no-cache',
+            },
+          });
           if (allRestaurants.ok) {
             const restaurants = await allRestaurants.json();
             const found = restaurants.find((r: Restaurant) => r.id === restaurantSlug);
             if (found) {
-              response = await fetch(`/api/restaurants/${found.slug}`);
+              response = await fetch(`/api/restaurants/${found.slug}`, {
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache',
+                },
+              });
             }
           }
         }

@@ -39,8 +39,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Determine upload directory based on image type
+    let uploadsDir: string;
+    let publicPath: string;
+    
+    if (imageType === 'avatar') {
+      uploadsDir = join(process.cwd(), 'public', 'uploads', 'avatars');
+      publicPath = '/uploads/avatars';
+    } else {
+      uploadsDir = join(process.cwd(), 'public', 'uploads', 'restaurants');
+      publicPath = '/uploads/restaurants';
+    }
+
     // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'restaurants');
     if (!existsSync(uploadsDir)) {
       await mkdir(uploadsDir, { recursive: true });
     }
@@ -58,7 +69,7 @@ export async function POST(request: Request) {
     await writeFile(filepath, buffer);
 
     // Return the public URL
-    const publicUrl = `/uploads/restaurants/${filename}`;
+    const publicUrl = `${publicPath}/${filename}`;
 
     return NextResponse.json({
       success: true,

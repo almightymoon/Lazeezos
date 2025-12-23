@@ -610,6 +610,11 @@ export default function PartnerDashboard() {
                       e.preventDefault();
                       // Handle logout
                       localStorage.removeItem('isLoggedIn');
+                      localStorage.removeItem('userRole');
+                      localStorage.removeItem('restaurantId');
+                      localStorage.removeItem('restaurantSlug');
+                      localStorage.removeItem('restaurantName');
+                      window.dispatchEvent(new Event('loginStateChange'));
                       router.push('/partner/login');
                     }}
                     className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"

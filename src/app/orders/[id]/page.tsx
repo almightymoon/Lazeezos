@@ -37,43 +37,41 @@ interface Order {
   orderNumber: string;
   restaurantName: string;
   restaurantImage: string;
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'on_the_way' | 'delivered' | 'cancelled';
+  restaurantSlug?: string;
+  restaurantPhone?: string;
+  restaurantAddress?: string;
+  status: string; // Can be various formats from API
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
   tax: number;
+  discount?: number;
   total: number;
   deliveryAddress: string;
   phoneNumber: string;
+  specialInstructions?: string;
   orderDate: string;
   estimatedDelivery?: string;
-  riderName?: string;
-  riderPhone?: string;
+  confirmedAt?: string;
+  preparedAt?: string;
+  pickedUpAt?: string;
+  deliveredAt?: string;
+  rider?: {
+    name: string;
+    phone: string;
+  } | null;
+  payment?: {
+    method: string;
+    status: string;
+    amount: number;
+  } | null;
+  review?: {
+    rating: number;
+    comment: string;
+  } | null;
 }
 
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    orderNumber: 'ORD-2024-001',
-    restaurantName: 'Burger Palace',
-    restaurantImage: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-    status: 'on_the_way',
-    items: [
-      { id: '1-1', name: 'Classic Beef Burger', quantity: 2, price: 12.99, image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-      { id: '1-2', name: 'French Fries', quantity: 1, price: 4.99, image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400' },
-    ],
-    subtotal: 30.97,
-    deliveryFee: 2.99,
-    tax: 1.55,
-    total: 35.51,
-    deliveryAddress: '123 Main Street, Apt 4B, Karachi, Sindh 75500',
-    phoneNumber: '+92 300 1234567',
-    orderDate: '2024-01-15T14:30:00',
-    estimatedDelivery: '2024-01-15T15:00:00',
-    riderName: 'Ahmed Ali',
-    riderPhone: '+92 300 7654321',
-  },
-];
+// Mock orders removed - now fetched from API
 
 const statusConfig = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
@@ -91,30 +89,67 @@ export default function OrderDetailPage() {
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [reviewText, setReviewText] = useState('');
   const [isReviewSubmitted, setIsReviewSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const orderId = params?.id as string;
   
   const [order, setOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    const foundOrder = mockOrders.find(o => o.id === orderId);
-    if (foundOrder) {
-      setOrder(foundOrder);
-    } else {
-      toast.error('Order not found');
-      router.push('/orders');
+    const fetchOrder = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/api/orders/${orderId}`, {
+          cache: 'no-store',
+        });
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            toast.error('Order not found');
+            router.push('/orders');
+            return;
+          }
+          throw new Error('Failed to fetch order');
+        }
+
+        const data = await response.json();
+        if (data.order) {
+          setOrder(data.order);
+          if (data.order.review) {
+            setSelectedRating(data.order.review.rating);
+            setReviewText(data.order.review.comment || '');
+            setIsReviewSubmitted(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching order:', error);
+        toast.error('Failed to load order');
+        router.push('/orders');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (orderId) {
+      fetchOrder();
     }
   }, [orderId, router]);
 
-  if (!order) {
+  if (isLoading || !order) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-600">Loading...</p>
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-600">Loading order...</p>
+        </div>
       </div>
     );
   }
 
-  const StatusIcon = statusConfig[order.status].icon;
-  const statusColor = statusConfig[order.status].color;
+  // Map status from API format to config keys
+  const statusKey = order.status.replace(/\s+/g, '_') as keyof typeof statusConfig;
+  const StatusIcon = statusConfig[statusKey]?.icon || Clock;
+  const statusColor = statusConfig[statusKey]?.color || 'bg-gray-100 text-gray-800';
+  const statusLabel = statusConfig[statusKey]?.label || order.status;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -145,7 +180,7 @@ export default function OrderDetailPage() {
                 <h1 className="text-3xl font-bold">Order {order.orderNumber}</h1>
                 <Badge className={statusColor}>
                   <StatusIcon className="w-3 h-3 mr-1" />
-                  {statusConfig[order.status].label}
+                  {statusLabel}
                 </Badge>
               </div>
               <p className="text-gray-600">
@@ -185,10 +220,10 @@ export default function OrderDetailPage() {
                 />
                 <div className="flex-1">
                   <h3 className="font-semibold">{item.name}</h3>
-                  <p className="text-sm text-gray-600">${item.price.toFixed(2)} × {item.quantity}</p>
+                  <p className="text-sm text-gray-600">PKR {item.price.toLocaleString()} × {item.quantity}</p>
                 </div>
                 <div className="font-semibold">
-                  ${(item.price * item.quantity).toFixed(2)}
+                  PKR {(item.price * item.quantity).toLocaleString()}
                 </div>
               </div>
             ))}
@@ -200,20 +235,26 @@ export default function OrderDetailPage() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+              <span className="font-medium">PKR {order.subtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Delivery Fee</span>
-              <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
+              <span className="font-medium">PKR {order.deliveryFee.toLocaleString()}</span>
             </div>
+            {order.discount !== undefined && order.discount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Discount</span>
+                <span className="font-medium">-PKR {order.discount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Tax</span>
-              <span className="font-medium">${order.tax.toFixed(2)}</span>
+              <span className="font-medium">PKR {order.tax.toLocaleString()}</span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Total</span>
-              <span className="text-orange-600">${order.total.toFixed(2)}</span>
+              <span className="text-orange-600">PKR {order.total.toLocaleString()}</span>
             </div>
           </div>
         </Card>
@@ -250,15 +291,15 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {order.riderName && (
+            {order.rider && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                 <p className="font-semibold mb-2 flex items-center gap-2">
                   <Truck className="w-5 h-5 text-blue-600" />
                   Delivery Rider
                 </p>
-                <p className="text-gray-700">{order.riderName}</p>
-                {order.riderPhone && (
-                  <p className="text-sm text-gray-600">{order.riderPhone}</p>
+                <p className="text-gray-700">{order.rider.name}</p>
+                {order.rider.phone && (
+                  <p className="text-sm text-gray-600">{order.rider.phone}</p>
                 )}
               </div>
             )}
@@ -266,7 +307,7 @@ export default function OrderDetailPage() {
         </Card>
 
         {/* Actions */}
-        {order.status === 'delivered' && !isReviewSubmitted && (
+        {(order.status === 'delivered' || order.status === 'Delivered') && !isReviewSubmitted && (
           <Card className="p-6 mb-6 bg-gradient-to-r from-orange-50 to-pink-50">
             <h2 className="text-2xl font-bold mb-4">Rate Your Experience</h2>
             <p className="text-gray-600 mb-4">How was your order?</p>
@@ -301,13 +342,34 @@ export default function OrderDetailPage() {
               </div>
             )}
             <Button
-              onClick={() => {
+              onClick={async () => {
                 if (selectedRating === 0) {
                   toast.error('Please select a rating');
                   return;
                 }
-                setIsReviewSubmitted(true);
-                toast.success(`Thank you! Your ${selectedRating}-star review has been submitted.`);
+                try {
+                  const response = await fetch(`/api/orders/${order.id}/review`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      rating: selectedRating,
+                      comment: reviewText,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to submit review');
+                  }
+
+                  setIsReviewSubmitted(true);
+                  toast.success(`Thank you! Your ${selectedRating}-star review has been submitted.`);
+                } catch (error: any) {
+                  console.error('Error submitting review:', error);
+                  toast.error(error.message || 'Failed to submit review');
+                }
               }}
               className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
             >
@@ -317,7 +379,7 @@ export default function OrderDetailPage() {
           </Card>
         )}
 
-        {order.status === 'delivered' && isReviewSubmitted && (
+        {(order.status === 'delivered' || order.status === 'Delivered') && isReviewSubmitted && (
           <Card className="p-6 mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
             <div className="flex items-center gap-3">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -329,7 +391,7 @@ export default function OrderDetailPage() {
           </Card>
         )}
 
-        {order.status !== 'delivered' && order.status !== 'cancelled' && (
+        {order.status !== 'delivered' && order.status !== 'Delivered' && order.status !== 'cancelled' && order.status !== 'Cancelled' && (
           <Card className="p-6">
             <div className="flex gap-4">
               <Button variant="outline" className="flex-1">

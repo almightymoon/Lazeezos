@@ -112,14 +112,36 @@ export default function RestaurantProfilePage() {
       const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
       const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
       const profileUrl = restaurantId || restaurantSlug 
-        ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
-        : '/api/partner/restaurant-profile';
+        ? `/api/partner/restaurant?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+        : '/api/partner/restaurant';
       const response = await fetch(profileUrl);
       if (!response.ok) {
         throw new Error('Failed to fetch restaurant profile');
       }
       const data = await response.json();
       if (data.restaurant) {
+        // Convert operatingHours from JSON object to array format if needed
+        let operatingHours = defaultOperatingHours;
+        if (data.restaurant.operatingHours) {
+          if (Array.isArray(data.restaurant.operatingHours)) {
+            operatingHours = data.restaurant.operatingHours;
+          } else if (typeof data.restaurant.operatingHours === 'object') {
+            // Convert object format to array format
+            operatingHours = defaultOperatingHours.map((defaultHour) => {
+              const dayKey = defaultHour.day.toLowerCase();
+              const storedHour = (data.restaurant.operatingHours as any)[dayKey];
+              if (storedHour) {
+                return {
+                  day: defaultHour.day,
+                  open: storedHour.open || defaultHour.open,
+                  close: storedHour.close || defaultHour.close,
+                };
+              }
+              return defaultHour;
+            });
+          }
+        }
+
         setFormData({
           name: data.restaurant.name || '',
           description: data.restaurant.description || '',
@@ -138,7 +160,7 @@ export default function RestaurantProfilePage() {
           deliveryFee: data.restaurant.deliveryFee || 0,
           minOrder: data.restaurant.minOrder || 0,
           priceRange: data.restaurant.priceRange || '$$',
-          operatingHours: data.restaurant.operatingHours || defaultOperatingHours,
+          operatingHours: operatingHours,
           logo: data.restaurant.logo || '',
           coverImage: data.restaurant.coverImage || '',
           images: data.restaurant.images || [],
@@ -167,15 +189,19 @@ export default function RestaurantProfilePage() {
       const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
       const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
       const profileUrl = restaurantId || restaurantSlug 
-        ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
-        : '/api/partner/restaurant-profile';
+        ? `/api/partner/restaurant?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+        : '/api/partner/restaurant';
       
       const response = await fetch(profileUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          restaurantId,
+          restaurantSlug,
+        }),
       });
 
       if (!response.ok) {
@@ -185,22 +211,8 @@ export default function RestaurantProfilePage() {
 
       const data = await response.json();
       
-      // Update form data with response data
-      if (data.restaurant) {
-        setFormData({
-          ...formData,
-          ...data.restaurant,
-        });
-        // Update localStorage with the latest restaurant name and slug
-        if (typeof window !== 'undefined') {
-          if (data.restaurant.name) {
-            localStorage.setItem('restaurantName', data.restaurant.name);
-          }
-          if (data.restaurant.slug) {
-            localStorage.setItem('restaurantSlug', data.restaurant.slug);
-          }
-        }
-      }
+      // Refresh the profile data from the server
+      await fetchRestaurantProfile();
 
       toast.success('Restaurant profile updated successfully!');
       setIsEditing(false);
@@ -269,10 +281,7 @@ export default function RestaurantProfilePage() {
         setFormData({ ...formData, images: [...(formData.images || []), data.url] });
       }
 
-      toast.success('Image uploaded successfully!');
-      
-      // Automatically save the profile with the new image
-      await handleSave();
+      toast.success('Image uploaded successfully! Click Save Changes to update.');
     } catch (error: any) {
       console.error('Error uploading image:', error);
       toast.error(error.message || 'Failed to upload image');
@@ -293,9 +302,7 @@ export default function RestaurantProfilePage() {
         setFormData({ ...formData, images: newImages });
       }
       
-      // Automatically save the profile
-      await handleSave();
-      toast.success('Image removed successfully!');
+      toast.success('Image removed. Click Save Changes to update.');
     } catch (error) {
       console.error('Error removing image:', error);
       toast.error('Failed to remove image');
@@ -644,7 +651,7 @@ export default function RestaurantProfilePage() {
               Operating Hours
             </h2>
             <div className="space-y-4">
-              {formData.operatingHours.map((hours, index) => (
+              {(Array.isArray(formData.operatingHours) ? formData.operatingHours : defaultOperatingHours).map((hours, index) => (
                 <div key={hours.day} className="flex items-center gap-4">
                   <div className="w-24 font-medium">{hours.day}</div>
                   {isEditing ? (

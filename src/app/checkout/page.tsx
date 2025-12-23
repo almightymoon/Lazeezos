@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/ui/button';
@@ -22,7 +22,8 @@ import {
   Edit,
   Trash2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '../../components/ui/sonner';
@@ -60,53 +61,15 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
-const mockAddresses: Address[] = [
-  {
-    id: '1',
-    label: 'Home',
-    street: '123 Main Street, Apt 4B',
-    city: 'Karachi',
-    state: 'Sindh',
-    zipCode: '75500',
-    phone: '+92 300 1234567',
-    isDefault: true,
-  },
-  {
-    id: '2',
-    label: 'Work',
-    street: '456 Business Plaza, Floor 10',
-    city: 'Karachi',
-    state: 'Sindh',
-    zipCode: '75501',
-    phone: '+92 300 1234567',
-    isDefault: false,
-  },
-];
+// Mock data removed - now fetched from APIs
 
-const mockPaymentMethods: PaymentMethod[] = [
-  {
-    id: '1',
-    type: 'card',
-    last4: '4242',
-    brand: 'Visa',
-    expiryMonth: 12,
-    expiryYear: 2025,
-    isDefault: true,
-  },
-  {
-    id: '2',
-    type: 'wallet',
-    walletName: 'JazzCash',
-    phoneNumber: '+92 300 1234567',
-    isDefault: false,
-  },
-];
-
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const router = useRouter();
-  const [addresses, setAddresses] = useState<Address[]>(mockAddresses);
-  const [selectedAddress, setSelectedAddress] = useState<string>(addresses.find(a => a.isDefault)?.id || '1');
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(mockPaymentMethods);
+  const searchParams = useSearchParams();
+  const restaurantId = searchParams.get('restaurantId');
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<string>('');
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [paymentMethodType, setPaymentMethodType] = useState<'cash' | 'card' | 'wallet'>('cash');
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>('');
   const [specialInstructions, setSpecialInstructions] = useState('');
@@ -114,6 +77,9 @@ export default function CheckoutPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [addressForm, setAddressForm] = useState<Omit<Address, 'id'>>({
     label: 'Home',
     street: '',
@@ -127,26 +93,62 @@ export default function CheckoutPage() {
     type: 'card',
     isDefault: false,
   });
-  const [cartItems] = useState<CartItem[]>([
-    {
-      id: '1',
-      name: 'Classic Beef Burger',
-      description: 'Juicy beef patty with fresh vegetables',
-      price: 12.99,
-      quantity: 2,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Burgers',
-    },
-    {
-      id: '2',
-      name: 'French Fries',
-      description: 'Crispy golden fries',
-      price: 4.99,
-      quantity: 1,
-      image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400',
-      category: 'Sides',
-    },
-  ]);
+
+  // Fetch addresses and payment methods on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch addresses
+        const addressesResponse = await fetch('/api/addresses', {
+          cache: 'no-store',
+        });
+        if (addressesResponse.ok) {
+          const addressesData = await addressesResponse.json();
+          setAddresses(addressesData.addresses || []);
+          const defaultAddress = addressesData.addresses?.find((a: Address) => a.isDefault);
+          if (defaultAddress) {
+            setSelectedAddress(defaultAddress.id);
+          } else if (addressesData.addresses?.length > 0) {
+            setSelectedAddress(addressesData.addresses[0].id);
+          }
+        }
+
+        // Fetch payment methods
+        const paymentResponse = await fetch('/api/payment-methods', {
+          cache: 'no-store',
+        });
+        if (paymentResponse.ok) {
+          const paymentData = await paymentResponse.json();
+          setPaymentMethods(paymentData.paymentMethods || []);
+        }
+
+        // Get cart items and restaurantId from localStorage
+        const storedCart = typeof window !== 'undefined' ? localStorage.getItem('cart') : null;
+        if (storedCart) {
+          const cart = JSON.parse(storedCart);
+          setCartItems(cart.items || []);
+          
+          // If restaurantId is not in URL, get it from cart
+          if (!restaurantId && cart.restaurantId) {
+            router.replace(`/checkout?restaurantId=${cart.restaurantId}`);
+          }
+        } else {
+          // No cart items, redirect to home
+          toast.error('Your cart is empty');
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Error fetching checkout data:', error);
+        toast.error('Failed to load checkout data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = 2.99;
@@ -207,51 +209,91 @@ export default function CheckoutPage() {
     setIsAddressDialogOpen(true);
   };
 
-  const handleDeleteAddress = (id: string) => {
+  const handleDeleteAddress = async (id: string) => {
     const addressToDelete = addresses.find(a => a.id === id);
     if (addressToDelete?.isDefault) {
       toast.error('Cannot delete default address');
       return;
     }
-    const updatedAddresses = addresses.filter(a => a.id !== id);
-    setAddresses(updatedAddresses);
-    if (selectedAddress === id) {
-      setSelectedAddress(updatedAddresses.find(a => a.isDefault)?.id || updatedAddresses[0]?.id || '');
+
+    try {
+      const response = await fetch(`/api/addresses?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete address');
+      }
+
+      const updatedAddresses = addresses.filter(a => a.id !== id);
+      setAddresses(updatedAddresses);
+      if (selectedAddress === id) {
+        setSelectedAddress(updatedAddresses.find(a => a.isDefault)?.id || updatedAddresses[0]?.id || '');
+      }
+      toast.success('Address deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting address:', error);
+      toast.error(error.message || 'Failed to delete address');
     }
-    toast.success('Address deleted successfully');
   };
 
-  const handleSaveAddress = () => {
+  const handleSaveAddress = async () => {
     if (!addressForm.street || !addressForm.city || !addressForm.state || !addressForm.zipCode || !addressForm.phone) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (addressForm.isDefault) {
-      // Remove default from all addresses
-      setAddresses(prev => prev.map(a => ({ ...a, isDefault: false })));
-    }
+    try {
+      if (editingAddress) {
+        // Update existing address
+        const response = await fetch('/api/addresses', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editingAddress.id,
+            ...addressForm,
+          }),
+        });
 
-    if (editingAddress) {
-      // Update existing address
-      setAddresses(prev => prev.map(a => 
-        a.id === editingAddress.id 
-          ? { ...addressForm, id: editingAddress.id }
-          : addressForm.isDefault ? { ...a, isDefault: false } : a
-      ));
-      toast.success('Address updated successfully');
-    } else {
-      // Add new address
-      const newAddress: Address = {
-        ...addressForm,
-        id: Date.now().toString(),
-      };
-      setAddresses(prev => [...prev, newAddress]);
-      setSelectedAddress(newAddress.id);
-      toast.success('Address added successfully');
-    }
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to update address');
+        }
 
-    setIsAddressDialogOpen(false);
+        const data = await response.json();
+        setAddresses(prev => prev.map(a => 
+          a.id === editingAddress.id ? data.address : a
+        ));
+        toast.success('Address updated successfully');
+      } else {
+        // Add new address
+        const response = await fetch('/api/addresses', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(addressForm),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to add address');
+        }
+
+        const data = await response.json();
+        setAddresses(prev => [...prev, data.address]);
+        setSelectedAddress(data.address.id);
+        toast.success('Address added successfully');
+      }
+
+      setIsAddressDialogOpen(false);
+    } catch (error: any) {
+      console.error('Error saving address:', error);
+      toast.error(error.message || 'Failed to save address');
+    }
   };
 
   const handleAddPayment = (type: 'card' | 'wallet' = 'card') => {
@@ -330,11 +372,36 @@ export default function CheckoutPage() {
     setIsPaymentDialogOpen(false);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Your cart is empty</p>
+          <Button onClick={() => router.push('/')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
       <Header 
-        cartItemCount={0}
+        cartItemCount={cartItems.reduce((sum, item) => sum + item.quantity, 0)}
         onCartClick={() => {}}
         onSearch={() => {}}
         selectedCategory="delivery"
@@ -678,10 +745,20 @@ export default function CheckoutPage() {
               {/* Place Order Button */}
               <Button
                 onClick={handlePlaceOrder}
-                className="w-full h-14 text-lg bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 hover:from-orange-600 hover:via-pink-600 hover:to-purple-600 text-white shadow-lg"
+                disabled={isPlacingOrder || isLoading || cartItems.length === 0}
+                className="w-full h-14 text-lg bg-gradient-to-r from-orange-500 via-pink-500 to-purple-500 hover:from-orange-600 hover:via-pink-600 hover:to-purple-600 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Place Order
+                {isPlacingOrder ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Placing Order...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Place Order
+                  </>
+                )}
               </Button>
 
               <div className="mt-4 flex items-start gap-2 text-xs text-gray-600">
@@ -950,6 +1027,21 @@ export default function CheckoutPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
+          <p className="text-gray-600">Loading checkout...</p>
+        </div>
+      </div>
+    }>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }
 

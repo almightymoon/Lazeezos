@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '../../../components/Header';
@@ -20,103 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Mock restaurant data - Same as home page
-const restaurants: Restaurant[] = [
-  {
-    id: '1',
-    name: 'Burger Palace',
-    image: 'https://images.unsplash.com/photo-1656439659132-24c68e36b553?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXJnZXIlMjBmYXN0JTIwZm9vZHxlbnwxfHx8fDE3NjYxMzEwODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['American', 'Burgers', 'Fast Food'],
-    rating: 4.5,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-    isPromoted: true,
-    discount: '20% OFF',
-  },
-  {
-    id: '2',
-    name: 'Pizza Italia',
-    image: 'https://images.unsplash.com/photo-1749169395459-9eb9835bd718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaXp6YSUyMGl0YWxpYW4lMjBmb29kfGVufDF8fHx8MTc2NjA0MzIxNHww&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Italian', 'Pizza', 'Pasta'],
-    rating: 4.7,
-    deliveryTime: '30-40 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 20.00,
-    discount: '15% OFF',
-  },
-  {
-    id: '3',
-    name: 'Sushi World',
-    image: 'https://images.unsplash.com/photo-1697580511707-476438ba9614?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdXNoaSUyMGFzaWFuJTIwZm9vZHxlbnwxfHx8fDE3NjYxMTc2ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Japanese', 'Sushi', 'Asian'],
-    rating: 4.8,
-    deliveryTime: '35-45 min',
-    priceRange: '$$$',
-    deliveryFee: 4.99,
-    minOrder: 25.00,
-    isPromoted: true,
-  },
-  {
-    id: '4',
-    name: 'Sweet Treats',
-    image: 'https://images.unsplash.com/photo-1679942262057-d5732f732841?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNzZXJ0JTIwY2FrZXxlbnwxfHx8fDE3NjYxMTEzMTd8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Desserts', 'Bakery', 'Sweets'],
-    rating: 4.6,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 1.99,
-    minOrder: 10.00,
-  },
-  {
-    id: '5',
-    name: 'Green Bowl',
-    image: 'https://images.unsplash.com/photo-1624340209404-4f479dd59708?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwc2FsYWQlMjBib3dsfGVufDF8fHx8fDE3NjYxMjYzODZ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Healthy', 'Salads', 'Vegan'],
-    rating: 4.4,
-    deliveryTime: '20-30 min',
-    priceRange: '$$',
-    deliveryFee: 2.49,
-    minOrder: 12.00,
-    discount: '10% OFF',
-  },
-  {
-    id: '6',
-    name: 'Taco Fiesta',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8fDE3NjYxNDkzOTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mexican', 'Tacos', 'Burritos'],
-    rating: 4.3,
-    deliveryTime: '25-35 min',
-    priceRange: '$$',
-    deliveryFee: 2.99,
-    minOrder: 15.00,
-  },
-  {
-    id: '7',
-    name: 'Thai Express',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8fDE3NjYxNDkzOTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Thai', 'Asian'],
-    rating: 4.5,
-    deliveryTime: '30-40 min',
-    priceRange: '$$',
-    deliveryFee: 3.49,
-    minOrder: 18.00,
-  },
-  {
-    id: '8',
-    name: 'Mediterranean Grill',
-    image: 'https://images.unsplash.com/photo-1640082380928-2f7079392823?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZXN0YXVyYW50JTIwZm9vZCUyMGRlbGl2ZXJ5fGVufDF8fHx8fDE3NjYxNDkzOTR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-    cuisine: ['Mediterranean', 'Healthy'],
-    rating: 4.7,
-    deliveryTime: '25-35 min',
-    priceRange: '$$$',
-    deliveryFee: 3.99,
-    minOrder: 22.00,
-    discount: '25% OFF',
-  },
-];
+// Restaurants will be fetched from API - removed mock data
 
 // Map cuisine slugs to display names
 const cuisineMap: Record<string, string> = {
@@ -162,16 +66,45 @@ function CuisinePageContent() {
     dietary: [],
   });
 
-  // Filter restaurants by cuisine
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch restaurants by cuisine
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        setLoading(true);
+        const cuisineType = cuisineMap[cuisineSlug] || cuisineSlug;
+        const response = await fetch(`/api/restaurants?cuisine=${encodeURIComponent(cuisineType)}`, {
+          cache: 'no-store',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRestaurants(data.restaurants || []);
+        }
+      } catch (error) {
+        console.error('Error fetching restaurants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (cuisineSlug) {
+      fetchRestaurants();
+    }
+  }, [cuisineSlug]);
+
+  // Filter restaurants by cuisine (client-side filtering for additional filters)
   const filteredRestaurants = useMemo(() => {
+    if (loading) return [];
     return restaurants.filter(restaurant => {
       // Check if restaurant has this cuisine type
-      return restaurant.cuisine.some(c => 
+      return restaurant.cuisine?.some(c => 
         c.toLowerCase() === cuisineName.toLowerCase() ||
         c.toLowerCase().replace(/\s+/g, '-') === cuisineSlug
       );
     });
-  }, [cuisineName, cuisineSlug]);
+  }, [cuisineName, cuisineSlug, restaurants, loading]);
 
   // Apply filters and sorting
   const filteredAndSortedRestaurants = useMemo(() => {
@@ -496,5 +429,6 @@ export default function CuisinePage() {
     </Suspense>
   );
 }
+
 
 
