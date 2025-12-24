@@ -205,8 +205,11 @@ export default function PartnerDashboard() {
           setCategories(['All', ...Array.from(uniqueCategories).sort()]);
         }
 
-        // Fetch orders
-        const ordersResponse = await fetch('/api/partner/orders', { cache: 'no-store' });
+        // Fetch orders - include restaurant info from localStorage and status filter
+        const ordersUrl = restaurantId || restaurantSlug 
+          ? `/api/partner/orders?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}&status=${orderFilter}`
+          : `/api/partner/orders?status=${orderFilter}`;
+        const ordersResponse = await fetch(ordersUrl, { cache: 'no-store' });
         if (ordersResponse.ok) {
           const ordersData = await ordersResponse.json();
           setOrders(ordersData.orders || []);
@@ -230,6 +233,24 @@ export default function PartnerDashboard() {
 
     fetchData();
     
+    // Poll for new orders every 10 seconds (for real-time updates)
+    const orderPollInterval = setInterval(() => {
+      const restaurantId = typeof window !== 'undefined' ? localStorage.getItem('restaurantId') : null;
+      const restaurantSlug = typeof window !== 'undefined' ? localStorage.getItem('restaurantSlug') : null;
+      const ordersUrl = restaurantId || restaurantSlug 
+        ? `/api/partner/orders?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}&status=${orderFilter}`
+        : `/api/partner/orders?status=${orderFilter}`;
+      
+      fetch(ordersUrl, { cache: 'no-store' })
+        .then(response => response.json())
+        .then(data => {
+          if (data.orders) {
+            setOrders(data.orders || []);
+          }
+        })
+        .catch(error => console.error('Error polling orders:', error));
+    }, 10000); // Poll every 10 seconds
+    
     // Listen for restaurant profile updates
     const handleProfileUpdate = () => {
       fetchData();
@@ -237,9 +258,10 @@ export default function PartnerDashboard() {
     window.addEventListener('restaurantProfileUpdated', handleProfileUpdate);
     
     return () => {
+      clearInterval(orderPollInterval);
       window.removeEventListener('restaurantProfileUpdated', handleProfileUpdate);
     };
-  }, []);
+  }, [orderFilter]);
 
 
   const getStatusColor = (status: string) => {
@@ -401,10 +423,8 @@ export default function PartnerDashboard() {
     return matchesSearch && matchesCategory;
   });
 
-  const filteredOrders = orders.filter(order => {
-    if (orderFilter === 'all') return true;
-    return order.status === orderFilter;
-  });
+  // Orders are already filtered by status on the backend, so no need to filter again
+  const filteredOrders = orders;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50">

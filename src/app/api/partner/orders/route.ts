@@ -8,11 +8,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // Filter by status
-    const restaurantId = searchParams.get('restaurantId'); // In real app, get from session/auth
+    const restaurantId = searchParams.get('restaurantId');
+    const restaurantSlug = searchParams.get('restaurantSlug');
 
-    // For now, get the first restaurant (for demo)
-    // In production, get from authenticated session
-    const restaurant = await prisma.restaurant.findFirst();
+    let restaurant;
+    if (restaurantId) {
+      restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
+    } else if (restaurantSlug) {
+      restaurant = await prisma.restaurant.findUnique({ where: { slug: restaurantSlug } });
+    } else {
+      // Fallback for demo, in production this would come from auth
+      restaurant = await prisma.restaurant.findFirst();
+    }
 
     if (!restaurant) {
       return NextResponse.json({ orders: [] });
