@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, 
@@ -51,9 +51,8 @@ export default function RiderDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isOnline, setIsOnline] = useState(true);
-
-  // Mock data
-  const todayStats = [
+  const [loading, setLoading] = useState(true);
+  const [todayStats, setTodayStats] = useState([
     { 
       label: 'Today\'s Earnings', 
       value: 'PKR 18,750', 
@@ -88,93 +87,129 @@ export default function RiderDashboard() {
     },
   ];
 
-  const earningsData = [
-    { day: 'Mon', earnings: 142, deliveries: 18 },
-    { day: 'Tue', earnings: 165, deliveries: 21 },
-    { day: 'Wed', earnings: 153, deliveries: 19 },
-    { day: 'Thu', earnings: 178, deliveries: 23 },
-    { day: 'Fri', earnings: 195, deliveries: 25 },
-    { day: 'Sat', earnings: 210, deliveries: 28 },
-    { day: 'Sun', earnings: 187, deliveries: 24 },
-  ];
+  const [earningsData, setEarningsData] = useState<Array<{ day: string; earnings: number; deliveries: number }>>([]);
+  const [weeklyPerformance, setWeeklyPerformance] = useState<Array<{ hour: string; orders: number }>>([]);
+  const [availableOrders, setAvailableOrders] = useState<Array<any>>([]);
+  const [activeDelivery, setActiveDelivery] = useState<any>(null);
+  const [deliveryHistory, setDeliveryHistory] = useState<Array<any>>([]);
 
-  const weeklyPerformance = [
-    { hour: '9AM', orders: 3 },
-    { hour: '11AM', orders: 7 },
-    { hour: '1PM', orders: 12 },
-    { hour: '3PM', orders: 5 },
-    { hour: '5PM', orders: 8 },
-    { hour: '7PM', orders: 15 },
-    { hour: '9PM', orders: 9 },
-  ];
+  // Fetch rider stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/rider/stats', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          setTodayStats([
+            { 
+              label: 'Today\'s Earnings', 
+              value: `PKR ${data.todayEarnings.toLocaleString()}`, 
+              change: '', 
+              trend: 'up',
+              icon: DollarSign,
+              color: 'from-green-500 to-emerald-600'
+            },
+            { 
+              label: 'Deliveries Completed', 
+              value: data.deliveriesCompleted.toString(), 
+              change: '', 
+              trend: 'up',
+              icon: CheckCircle,
+              color: 'from-blue-500 to-cyan-600'
+            },
+            { 
+              label: 'Average Rating', 
+              value: data.averageRating.toFixed(1), 
+              change: '★'.repeat(Math.round(data.averageRating)), 
+              trend: 'up',
+              icon: Star,
+              color: 'from-yellow-500 to-orange-600'
+            },
+            { 
+              label: 'Active Hours', 
+              value: `${data.activeHours}h`, 
+              change: 'Today', 
+              trend: 'up',
+              icon: Clock,
+              color: 'from-purple-500 to-pink-600'
+            },
+          ]);
+          setEarningsData(data.weeklyEarnings || []);
+          setWeeklyPerformance(data.weeklyPerformance || []);
+        }
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const availableOrders = [
-    { 
-      id: '#D12345', 
-      restaurant: 'Burger Palace',
-      restaurantAddress: '123 Main St',
-      customer: 'John Doe', 
-      deliveryAddress: '456 Oak Avenue, Apt 3B',
-      distance: '2.3 mi',
-      payment: 850,
-      items: 2,
-      time: 'Just now',
-      priority: 'high'
-    },
-    { 
-      id: '#D12346', 
-      restaurant: 'Pizza Heaven',
-      restaurantAddress: '789 Pizza Blvd',
-      customer: 'Jane Smith', 
-      deliveryAddress: '321 Elm Street',
-      distance: '1.8 mi',
-      payment: 720,
-      items: 1,
-      time: '2 min ago',
-      priority: 'normal'
-    },
-    { 
-      id: '#D12347', 
-      restaurant: 'Sushi Master',
-      restaurantAddress: '555 Sushi Lane',
-      customer: 'Mike Johnson', 
-      deliveryAddress: '789 Maple Drive, Suite 12',
-      distance: '3.1 mi',
-      payment: 980,
-      items: 3,
-      time: '5 min ago',
-      priority: 'normal'
-    },
-  ];
+    fetchStats();
+  }, []);
 
-  const activeDelivery = {
-    id: '#D12344',
-    restaurant: 'Taco Fiesta',
-    restaurantAddress: '234 Taco St',
-    customer: 'Sarah Williams',
-    customerPhone: '+92 300 1234567',
-    deliveryAddress: '890 Pine Street, Unit 5A',
-    distance: '1.5 mi',
-    payment: 780,
-    items: 2,
-    status: 'picked_up',
-    estimatedTime: '12 min',
-    orderDetails: [
-      'Beef Tacos x2',
-      'Nachos Supreme',
-    ]
-  };
+  // Fetch orders
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        // Fetch available orders
+        const availableRes = await fetch('/api/rider/orders?type=available', { cache: 'no-store' });
+        if (availableRes.ok) {
+          const availableData = await availableRes.json();
+          setAvailableOrders(availableData.availableOrders || []);
+        }
 
-  const deliveryHistory = [
-    { id: '#D12343', customer: 'Tom Brown', amount: 850, rating: 5, time: '2:30 PM', date: 'Today' },
-    { id: '#D12342', customer: 'Lisa Green', amount: 720, rating: 5, time: '1:45 PM', date: 'Today' },
-    { id: '#D12341', customer: 'David Lee', amount: 980, rating: 4, time: '12:15 PM', date: 'Today' },
-    { id: '#D12340', customer: 'Amy Wilson', amount: 650, rating: 5, time: '11:30 AM', date: 'Today' },
-    { id: '#D12339', customer: 'Chris Martin', amount: 1020, rating: 5, time: '10:20 AM', date: 'Today' },
-  ];
+        // Fetch active delivery
+        const activeRes = await fetch('/api/rider/orders?type=active', { cache: 'no-store' });
+        if (activeRes.ok) {
+          const activeData = await activeRes.json();
+          setActiveDelivery(activeData.activeDelivery);
+        }
 
-  const handleAcceptOrder = (orderId: string) => {
-    toast.success(`Order ${orderId} accepted! Navigate to pickup location.`);
+        // Fetch delivery history
+        const historyRes = await fetch('/api/rider/orders?type=history', { cache: 'no-store' });
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setDeliveryHistory(historyData.deliveryHistory || []);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
+    };
+
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      const response = await fetch('/api/rider/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+      if (response.ok) {
+        toast.success(`Order ${orderId} accepted! Navigate to pickup location.`);
+        // Refresh orders
+        const availableRes = await fetch('/api/rider/orders?type=available', { cache: 'no-store' });
+        if (availableRes.ok) {
+          const data = await availableRes.json();
+          setAvailableOrders(data.availableOrders || []);
+        }
+        const activeRes = await fetch('/api/rider/orders?type=active', { cache: 'no-store' });
+        if (activeRes.ok) {
+          const data = await activeRes.json();
+          setActiveDelivery(data.activeDelivery);
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to accept order');
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      toast.error('Failed to accept order');
+    }
   };
 
   const handleLogout = () => {

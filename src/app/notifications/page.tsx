@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Header } from '../../components/Header';
@@ -127,8 +127,55 @@ const getNotificationColor = (type: Notification['type']) => {
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+
+  // Fetch notifications
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/notifications', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          // Transform API response to match Notification interface
+          const transformedNotifications = data.notifications.map((notif: any) => ({
+            id: notif.id,
+            type: notif.type,
+            title: notif.title,
+            message: notif.message,
+            timestamp: formatTimestamp(notif.timestamp),
+            isRead: notif.read || false,
+            link: notif.orderId ? `/orders/${notif.orderId}` : notif.type === 'promotion' ? '/vouchers' : undefined,
+            orderId: notif.orderId,
+          }));
+          setNotifications(transformedNotifications);
+        }
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -138,9 +185,22 @@ export default function NotificationsPage() {
     return true;
   });
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
-    toast.success('Marked as read');
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId: id }),
+      });
+      if (response.ok) {
+        setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+        toast.success('Marked as read');
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      // Still update UI even if API call fails
+      setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
+    }
   };
 
   const handleMarkAllAsRead = () => {

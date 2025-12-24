@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 import { Toaster } from '../../components/ui/sonner';
 import { CartItem } from '../../components/Cart';
+import { AddressPicker } from '../../components/Map';
 import {
   Dialog,
   DialogContent,
@@ -89,6 +90,7 @@ function CheckoutPageContent() {
     phone: '',
     isDefault: false,
   });
+  const [addressLocation, setAddressLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [paymentForm, setPaymentForm] = useState<{ type: 'card' | 'wallet'; cardNumber?: string; expiryMonth?: string; expiryYear?: string; cvv?: string; walletName?: string; phoneNumber?: string; isDefault: boolean }>({
     type: 'card',
     isDefault: false,
@@ -127,15 +129,30 @@ function CheckoutPageContent() {
         // Get cart items and restaurantId from localStorage
         const storedCart = typeof window !== 'undefined' ? localStorage.getItem('cart') : null;
         if (storedCart) {
-          const cart = JSON.parse(storedCart);
-          setCartItems(cart.items || []);
-          
-          // If restaurantId is not in URL, get it from cart
-          if (!restaurantId && cart.restaurantId) {
-            router.replace(`/checkout?restaurantId=${cart.restaurantId}`);
+          try {
+            const cart = JSON.parse(storedCart);
+            const items = cart.items || [];
+            
+            // Only redirect if cart is truly empty (no items at all)
+            if (items.length === 0) {
+              toast.error('Your cart is empty');
+              router.push('/');
+              return;
+            }
+            
+            setCartItems(items);
+            
+            // If restaurantId is not in URL, get it from cart
+            if (!restaurantId && cart.restaurantId) {
+              router.replace(`/checkout?restaurantId=${cart.restaurantId}`);
+            }
+          } catch (error) {
+            console.error('Error parsing cart:', error);
+            toast.error('Error loading cart. Please try again.');
+            router.push('/');
           }
         } else {
-          // No cart items, redirect to home
+          // No cart in localStorage, redirect to home
           toast.error('Your cart is empty');
           router.push('/');
         }
@@ -148,7 +165,7 @@ function CheckoutPageContent() {
     };
 
     fetchData();
-  }, []);
+  }, [router, restaurantId]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryFee = 2.99;
@@ -802,13 +819,21 @@ function CheckoutPageContent() {
             </div>
 
             <div>
-              <Label htmlFor="street">Street Address *</Label>
-              <Input
-                id="street"
+              <AddressPicker
                 value={addressForm.street}
-                onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                placeholder="123 Main Street, Apt 4B"
-                className="mt-2"
+                onChange={(address, location) => {
+                  // Parse address into components (basic parsing)
+                  const parts = address.split(',');
+                  setAddressForm({ ...addressForm, street: parts[0] || address });
+                  if (location) {
+                    setAddressLocation(location);
+                  }
+                }}
+                label="Street Address"
+                placeholder="Search for an address or click on the map..."
+                required
+                showMap={true}
+                mapHeight="250px"
               />
             </div>
 

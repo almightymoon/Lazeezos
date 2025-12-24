@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/ui/button';
@@ -145,26 +145,80 @@ export default function ProfilePage() {
     isDefault: false,
   });
   const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'preferences'>('profile');
-  const [profile, setProfile] = useState<UserProfile>(mockProfile);
-  const [editedProfile, setEditedProfile] = useState<UserProfile>(mockProfile);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/user/profile', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          setProfile(data.profile);
+          setEditedProfile(data.profile);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleEdit = () => {
-    setEditedProfile({ ...profile });
-    setIsEditing(true);
+    if (profile) {
+      setEditedProfile({ ...profile });
+      setIsEditing(true);
+    }
   };
 
   const handleCancel = () => {
-    setEditedProfile({ ...profile });
-    setIsEditing(false);
+    if (profile) {
+      setEditedProfile({ ...profile });
+      setIsEditing(false);
+    }
   };
 
-  const handleSave = () => {
-    setProfile({ ...editedProfile });
-    setIsEditing(false);
-    toast.success('Profile updated successfully!');
+  const handleSave = async () => {
+    if (!editedProfile) return;
+    
+    try {
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: editedProfile.firstName,
+          lastName: editedProfile.lastName,
+          email: editedProfile.email,
+          phone: editedProfile.phone,
+          dateOfBirth: editedProfile.dateOfBirth,
+          profileImage: editedProfile.profileImage,
+          address: editedProfile.address,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile({ ...editedProfile });
+        setIsEditing(false);
+        toast.success('Profile updated successfully!');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
+    if (!editedProfile) return;
+    
     if (field.includes('.')) {
       const [parent, child] = field.split('.');
       setEditedProfile({
@@ -183,6 +237,8 @@ export default function ProfilePage() {
   };
 
   const handlePreferenceChange = (category: string, key: string, value: boolean | string) => {
+    if (!editedProfile) return;
+    
     setEditedProfile({
       ...editedProfile,
       preferences: {
@@ -279,6 +335,12 @@ export default function ProfilePage() {
 
         {/* Profile Tab */}
         {activeTab === 'profile' && (
+          loading ? (
+            <div className="text-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading profile...</p>
+            </div>
+          ) : profile ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Profile Card */}
             <Card className="p-6 lg:col-span-1">
@@ -296,27 +358,29 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <h2 className="text-2xl font-bold mb-1">
-                  {isEditing ? `${editedProfile.firstName} ${editedProfile.lastName}` : `${profile.firstName} ${profile.lastName}`}
+                  {isEditing && editedProfile ? `${editedProfile.firstName} ${editedProfile.lastName}` : profile ? `${profile.firstName} ${profile.lastName}` : 'Loading...'}
                 </h2>
-                <p className="text-gray-600 mb-4">{isEditing ? editedProfile.email : profile.email}</p>
+                <p className="text-gray-600 mb-4">{isEditing && editedProfile ? editedProfile.email : profile?.email || ''}</p>
                 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3">
-                    <ShoppingBag className="w-5 h-5 mx-auto text-pink-600 mb-1" />
-                    <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
-                      {profile.stats.totalOrders}
-                    </p>
-                    <p className="text-xs text-gray-600">Orders</p>
+                {profile && (
+                  <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3">
+                      <ShoppingBag className="w-5 h-5 mx-auto text-pink-600 mb-1" />
+                      <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
+                        {profile.stats.totalOrders}
+                      </p>
+                      <p className="text-xs text-gray-600">Orders</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3">
+                      <Star className="w-5 h-5 mx-auto text-pink-600 mb-1" />
+                      <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
+                        {profile.stats.averageRating}
+                      </p>
+                      <p className="text-xs text-gray-600">Rating</p>
+                    </div>
                   </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-lg p-3">
-                    <Star className="w-5 h-5 mx-auto text-pink-600 mb-1" />
-                    <p className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">
-                      {profile.stats.averageRating}
-                    </p>
-                    <p className="text-xs text-gray-600">Rating</p>
-                  </div>
-                </div>
+                )}
               </div>
             </Card>
 
@@ -361,14 +425,14 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="firstName"
-                        value={editedProfile.firstName}
+                        value={editedProfile?.firstName || ''}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         className="mt-2"
                       />
                     ) : (
                       <div className="mt-2 flex items-center gap-2 text-gray-700">
                         <User className="w-4 h-4 text-gray-400" />
-                        <span>{profile.firstName}</span>
+                        <span>{profile?.firstName || ''}</span>
                       </div>
                     )}
                   </div>
@@ -377,14 +441,14 @@ export default function ProfilePage() {
                     {isEditing ? (
                       <Input
                         id="lastName"
-                        value={editedProfile.lastName}
+                        value={editedProfile?.lastName || ''}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         className="mt-2"
                       />
                     ) : (
                       <div className="mt-2 flex items-center gap-2 text-gray-700">
                         <User className="w-4 h-4 text-gray-400" />
-                        <span>{profile.lastName}</span>
+                        <span>{profile?.lastName || ''}</span>
                       </div>
                     )}
                   </div>
@@ -396,14 +460,14 @@ export default function ProfilePage() {
                     <Input
                       id="email"
                       type="email"
-                      value={editedProfile.email}
+                        value={editedProfile?.email || ''}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       className="mt-2"
                     />
                   ) : (
                     <div className="mt-2 flex items-center gap-2 text-gray-700">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      <span>{profile.email}</span>
+                      <span>{profile?.email || ''}</span>
                     </div>
                   )}
                 </div>
@@ -414,14 +478,14 @@ export default function ProfilePage() {
                     <Input
                       id="phone"
                       type="tel"
-                      value={editedProfile.phone}
+                        value={editedProfile?.phone || ''}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       className="mt-2"
                     />
                   ) : (
                     <div className="mt-2 flex items-center gap-2 text-gray-700">
                       <Phone className="w-4 h-4 text-gray-400" />
-                      <span>{profile.phone}</span>
+                      <span>{profile?.phone || ''}</span>
                     </div>
                   )}
                 </div>
@@ -432,14 +496,14 @@ export default function ProfilePage() {
                     <Input
                       id="dateOfBirth"
                       type="date"
-                      value={editedProfile.dateOfBirth}
+                        value={editedProfile?.dateOfBirth || ''}
                       onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                       className="mt-2"
                     />
                   ) : (
                     <div className="mt-2 flex items-center gap-2 text-gray-700">
                       <Calendar className="w-4 h-4 text-gray-400" />
-                      <span>{new Date(profile.dateOfBirth).toLocaleDateString('en-US', { 
+                      <span>{profile?.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString('en-US', { 
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric' 
@@ -458,14 +522,14 @@ export default function ProfilePage() {
                       {isEditing ? (
                         <Input
                           id="street"
-                          value={editedProfile.address.street}
+                          value={editedProfile?.address?.street || ''}
                           onChange={(e) => handleInputChange('address.street', e.target.value)}
                           className="mt-2"
                         />
                       ) : (
                         <div className="mt-2 flex items-center gap-2 text-gray-700">
                           <MapPin className="w-4 h-4 text-gray-400" />
-                          <span>{profile.address.street}</span>
+                          <span>{profile?.address?.street || ''}</span>
                         </div>
                       )}
                     </div>
@@ -475,12 +539,12 @@ export default function ProfilePage() {
                         {isEditing ? (
                           <Input
                             id="city"
-                            value={editedProfile.address.city}
+                            value={editedProfile?.address?.city || ''}
                             onChange={(e) => handleInputChange('address.city', e.target.value)}
                             className="mt-2"
                           />
                         ) : (
-                          <div className="mt-2 text-gray-700">{profile.address.city}</div>
+                          <div className="mt-2 text-gray-700">{profile?.address?.city || ''}</div>
                         )}
                       </div>
                       <div>
@@ -488,12 +552,12 @@ export default function ProfilePage() {
                         {isEditing ? (
                           <Input
                             id="state"
-                            value={editedProfile.address.state}
+                            value={editedProfile?.address?.state || ''}
                             onChange={(e) => handleInputChange('address.state', e.target.value)}
                             className="mt-2"
                           />
                         ) : (
-                          <div className="mt-2 text-gray-700">{profile.address.state}</div>
+                          <div className="mt-2 text-gray-700">{profile?.address?.state || ''}</div>
                         )}
                       </div>
                       <div>
@@ -501,12 +565,12 @@ export default function ProfilePage() {
                         {isEditing ? (
                           <Input
                             id="zipCode"
-                            value={editedProfile.address.zipCode}
+                            value={editedProfile?.address?.zipCode || ''}
                             onChange={(e) => handleInputChange('address.zipCode', e.target.value)}
                             className="mt-2"
                           />
                         ) : (
-                          <div className="mt-2 text-gray-700">{profile.address.zipCode}</div>
+                          <div className="mt-2 text-gray-700">{profile?.address?.zipCode || ''}</div>
                         )}
                       </div>
                     </div>
@@ -646,7 +710,7 @@ export default function ProfilePage() {
                   </div>
                   <input
                     type="checkbox"
-                    checked={editedProfile.preferences.notifications.email}
+                    checked={editedProfile?.preferences?.notifications?.email || false}
                     onChange={(e) => handlePreferenceChange('notifications', 'email', e.target.checked)}
                     className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
                   />
@@ -661,7 +725,7 @@ export default function ProfilePage() {
                   </div>
                   <input
                     type="checkbox"
-                    checked={editedProfile.preferences.notifications.sms}
+                    checked={editedProfile?.preferences?.notifications?.sms || false}
                     onChange={(e) => handlePreferenceChange('notifications', 'sms', e.target.checked)}
                     className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
                   />
@@ -676,7 +740,7 @@ export default function ProfilePage() {
                   </div>
                   <input
                     type="checkbox"
-                    checked={editedProfile.preferences.notifications.push}
+                    checked={editedProfile?.preferences?.notifications?.push || false}
                     onChange={(e) => handlePreferenceChange('notifications', 'push', e.target.checked)}
                     className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
                   />
@@ -732,7 +796,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <select
-                value={editedProfile.preferences.language}
+                value={editedProfile?.preferences?.language || 'en'}
                 onChange={(e) => handlePreferenceChange('language', 'language', e.target.value)}
                 className="w-full md:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
@@ -758,7 +822,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => handlePreferenceChange('theme', 'theme', 'light')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                    editedProfile.preferences.theme === 'light'
+                    editedProfile?.preferences?.theme === 'light'
                       ? 'border-pink-500 bg-pink-50 text-pink-600'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
@@ -769,7 +833,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => handlePreferenceChange('theme', 'theme', 'dark')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                    editedProfile.preferences.theme === 'dark'
+                    editedProfile?.preferences?.theme === 'dark'
                       ? 'border-pink-500 bg-pink-50 text-pink-600'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
@@ -780,7 +844,7 @@ export default function ProfilePage() {
                 <button
                   onClick={() => handlePreferenceChange('theme', 'theme', 'auto')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                    editedProfile.preferences.theme === 'auto'
+                    editedProfile?.preferences?.theme === 'auto'
                       ? 'border-pink-500 bg-pink-50 text-pink-600'
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
@@ -795,8 +859,10 @@ export default function ProfilePage() {
             <div className="flex justify-end">
               <Button
                 onClick={() => {
-                  setProfile({ ...editedProfile });
-                  toast.success('Preferences saved successfully!');
+                  if (editedProfile) {
+                    setProfile({ ...editedProfile });
+                    toast.success('Preferences saved successfully!');
+                  }
                 }}
                 className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white"
               >

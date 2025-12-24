@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '../../../components/ui/sonner';
+import { OrderTrackingMap } from '../../../components/Map';
 import { Label } from '../../../components/ui/label';
 
 interface OrderItem {
@@ -40,6 +41,13 @@ interface Order {
   restaurantSlug?: string;
   restaurantPhone?: string;
   restaurantAddress?: string;
+  restaurant?: {
+    id: string;
+    name: string;
+    address?: string;
+    latitude?: number;
+    longitude?: number;
+  };
   status: string; // Can be various formats from API
   items: OrderItem[];
   subtotal: number;
@@ -59,6 +67,10 @@ interface Order {
   rider?: {
     name: string;
     phone: string;
+    location?: {
+      lat: number;
+      lng: number;
+    };
   } | null;
   payment?: {
     method: string;
@@ -258,6 +270,29 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </Card>
+
+        {/* Order Tracking Map */}
+        {order.deliveryAddress && (
+          <OrderTrackingMap
+            restaurantLocation={{
+              lat: order.restaurant?.latitude || 24.8607, // Default to Karachi coordinates
+              lng: order.restaurant?.longitude || 67.0011,
+              address: order.restaurant?.address || order.restaurantAddress || order.restaurantName || 'Restaurant',
+            }}
+            deliveryLocation={{
+              lat: 24.8607, // In production, get from address geocoding or store lat/lng when address is saved
+              lng: 67.0011,
+              address: order.deliveryAddress,
+            }}
+            riderLocation={order.rider?.location ? {
+              lat: order.rider.location.lat,
+              lng: order.rider.location.lng,
+            } : undefined}
+            orderStatus={order.status}
+            estimatedDeliveryTime={order.estimatedDelivery ? new Date(order.estimatedDelivery).toLocaleTimeString() : undefined}
+            className="mb-6"
+          />
+        )}
 
         {/* Delivery Information */}
         <Card className="p-6 mb-6">

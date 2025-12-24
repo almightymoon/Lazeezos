@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -79,9 +79,8 @@ export default function AdminDashboard() {
   const [restaurantFilter, setRestaurantFilter] = useState('all');
   const [orderFilter, setOrderFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Mock data
-  const stats = [
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState([
     { 
       label: 'Total Revenue', 
       value: 'PKR 2.45M', 
@@ -601,9 +600,12 @@ export default function AdminDashboard() {
                                   <Edit className="mr-2 h-4 w-4" />
                                   Edit User
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleUpdateUserStatus(user.id, user.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED')}
+                                >
                                   <Trash2 className="mr-2 h-4 w-4" />
-                                  Suspend User
+                                  {user.status === 'SUSPENDED' ? 'Activate User' : 'Suspend User'}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -680,12 +682,18 @@ export default function AdminDashboard() {
                               Edit Restaurant
                             </DropdownMenuItem>
                             {restaurant.status === 'PENDING' && (
-                              <DropdownMenuItem className="text-green-600">
+                              <DropdownMenuItem 
+                                className="text-green-600"
+                                onClick={() => handleUpdateRestaurantStatus(restaurant.id, 'ACTIVE')}
+                              >
                                 <CheckCircle className="mr-2 h-4 w-4" />
                                 Approve
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuItem className="text-red-600">
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => handleUpdateRestaurantStatus(restaurant.id, restaurant.status === 'SUSPENDED' ? 'ACTIVE' : 'SUSPENDED')}
+                            >
                               <XCircle className="mr-2 h-4 w-4" />
                               {restaurant.status === 'SUSPENDED' ? 'Activate' : 'Suspend'}
                             </DropdownMenuItem>

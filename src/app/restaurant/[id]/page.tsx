@@ -78,6 +78,19 @@ export default function RestaurantDetailPage() {
     }
   }, [restaurantSlug, router]);
 
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (restaurant && cartItems.length > 0) {
+      localStorage.setItem('cart', JSON.stringify({
+        items: cartItems,
+        restaurantId: restaurant.id,
+      }));
+      localStorage.setItem('selectedRestaurantId', restaurant.id);
+    } else if (cartItems.length === 0) {
+      localStorage.removeItem('cart');
+    }
+  }, [cartItems, restaurant]);
+
   const handleAddToCart = (item: MenuItem) => {
     const existingItem = cartItems.find(cartItem => cartItem.id === item.id);
     if (existingItem) {

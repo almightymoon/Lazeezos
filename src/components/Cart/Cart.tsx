@@ -28,8 +28,21 @@ export function Cart({ isOpen, onClose, items, onUpdateQuantity, onRemoveItem }:
   const total = subtotal + deliveryFee + serviceFee;
 
   const handleCheckout = () => {
+    // Save cart to localStorage before navigating to checkout
+    // Get restaurantId from localStorage (set by restaurant page)
+    const restaurantId = typeof window !== 'undefined' 
+      ? localStorage.getItem('selectedRestaurantId') 
+      : null;
+    
+    if (typeof window !== 'undefined' && items.length > 0) {
+      localStorage.setItem('cart', JSON.stringify({
+        items: items,
+        restaurantId: restaurantId,
+      }));
+    }
+    
     onClose();
-    router.push('/checkout');
+    router.push(restaurantId ? `/checkout?restaurantId=${restaurantId}` : '/checkout');
   };
 
   return (

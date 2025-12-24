@@ -118,6 +118,8 @@ export default function PartnerDashboard() {
   });
   const [restaurantName, setRestaurantName] = useState('Restaurant Owner');
   const [restaurantLocation, setRestaurantLocation] = useState('Karachi, Pakistan');
+  const [restaurantRating, setRestaurantRating] = useState(0);
+  const [restaurantTotalReviews, setRestaurantTotalReviews] = useState(0);
   const [loading, setLoading] = useState(true);
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [menuSearch, setMenuSearch] = useState('');
@@ -126,6 +128,8 @@ export default function PartnerDashboard() {
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [topItems, setTopItems] = useState<Array<{ name: string; orders: number; revenue: number }>>([]);
+  const [categories, setCategories] = useState<string[]>(['All']);
   const [menuFormData, setMenuFormData] = useState<Partial<MenuItem>>({
     name: '',
     description: '',
@@ -148,11 +152,11 @@ export default function PartnerDashboard() {
         const restaurantId = localStorage.getItem('restaurantId');
         const restaurantSlug = localStorage.getItem('restaurantSlug');
         
-        // Fetch restaurant profile to get restaurant name and location
+        // Fetch restaurant profile to get restaurant name, location, rating, and reviews
         const profileUrl = restaurantId || restaurantSlug 
           ? `/api/partner/restaurant-profile?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
           : '/api/partner/restaurant-profile';
-        const profileResponse = await fetch(profileUrl);
+        const profileResponse = await fetch(profileUrl, { cache: 'no-store' });
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
           if (profileData.restaurant) {
@@ -164,13 +168,19 @@ export default function PartnerDashboard() {
             if (profileData.restaurant.city && profileData.restaurant.country) {
               setRestaurantLocation(`${profileData.restaurant.city}, ${profileData.restaurant.country}`);
             }
+            if (profileData.restaurant.rating !== undefined) {
+              setRestaurantRating(profileData.restaurant.rating);
+            }
+            if (profileData.restaurant.totalReviews !== undefined) {
+              setRestaurantTotalReviews(profileData.restaurant.totalReviews);
+            }
           }
         } else {
           console.error('Failed to fetch restaurant profile:', profileResponse.status);
         }
         
         // Fetch stats
-        const statsResponse = await fetch('/api/partner/stats');
+        const statsResponse = await fetch('/api/partner/stats', { cache: 'no-store' });
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setStats(statsData);
@@ -180,17 +190,36 @@ export default function PartnerDashboard() {
         const menuUrl = restaurantId || restaurantSlug 
           ? `/api/partner/menu?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
           : '/api/partner/menu';
-        const menuResponse = await fetch(menuUrl);
+        const menuResponse = await fetch(menuUrl, { cache: 'no-store' });
         if (menuResponse.ok) {
           const menuData = await menuResponse.json();
           setMenuItems(menuData.menuItems || []);
+          
+          // Extract unique categories from menu items
+          const uniqueCategories = new Set<string>();
+          (menuData.menuItems || []).forEach((item: MenuItem) => {
+            if (item.category) {
+              uniqueCategories.add(item.category);
+            }
+          });
+          setCategories(['All', ...Array.from(uniqueCategories).sort()]);
         }
 
         // Fetch orders
-        const ordersResponse = await fetch('/api/partner/orders');
+        const ordersResponse = await fetch('/api/partner/orders', { cache: 'no-store' });
         if (ordersResponse.ok) {
           const ordersData = await ordersResponse.json();
           setOrders(ordersData.orders || []);
+        }
+
+        // Fetch top selling items - include restaurant info from localStorage
+        const topItemsUrl = restaurantId || restaurantSlug 
+          ? `/api/partner/top-items?${restaurantId ? `restaurantId=${restaurantId}` : `restaurantSlug=${restaurantSlug}`}`
+          : '/api/partner/top-items';
+        const topItemsResponse = await fetch(topItemsUrl, { cache: 'no-store' });
+        if (topItemsResponse.ok) {
+          const topItemsData = await topItemsResponse.json();
+          setTopItems(topItemsData.topItems || []);
         }
       } catch (error) {
         console.error('Error fetching partner data:', error);
@@ -212,15 +241,6 @@ export default function PartnerDashboard() {
     };
   }, []);
 
-  // Calculate top items from menu items (mock for now)
-  const topItems = [
-    { name: 'Chicken Biryani', orders: 142, revenue: 28400 },
-    { name: 'Beef Burger', orders: 98, revenue: 19600 },
-    { name: 'Pizza Margherita', orders: 76, revenue: 15200 },
-    { name: 'Chicken Karahi', orders: 65, revenue: 19500 },
-  ];
-
-  const categories = ['All', 'Main Course', 'Fast Food', 'Desserts', 'Beverages', 'Appetizers'];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -348,10 +368,21 @@ export default function PartnerDashboard() {
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
-      // In a real app, you'd have an API endpoint for this
-      // For now, just update locally
-      setOrders(orders.map(order => order.id === orderId ? { ...order, status: newStatus } : order));
-      toast.success(`Order status updated to ${newStatus}`);
+      const response = await fetch('/api/partner/orders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, status: newStatus }),
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // Update the order in the local state
+        setOrders(orders.map(order => order.id === orderId ? data.order : order));
+        toast.success(`Order status updated to ${newStatus}`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update order status');
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('Failed to update order status');
@@ -710,7 +741,7 @@ export default function PartnerDashboard() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
-                          <span>4.8 (234 reviews)</span>
+                          <span>{restaurantRating.toFixed(1)} ({restaurantTotalReviews} reviews)</span>
                         </div>
                       </div>
                     </div>
@@ -812,7 +843,13 @@ export default function PartnerDashboard() {
                 <Sparkles className="w-6 h-6 text-pink-500" />
               </div>
               <div className="space-y-4">
-                {topItems.map((item, index) => (
+                {topItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600 text-sm">No sales data available yet</p>
+                  </div>
+                ) : (
+                  topItems.map((item, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between p-4 rounded-xl border-2 hover:border-pink-200 hover:shadow-md transition-all bg-white"
@@ -831,7 +868,8 @@ export default function PartnerDashboard() {
                       <p className="text-xs text-gray-500">Revenue</p>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </TabsContent>
