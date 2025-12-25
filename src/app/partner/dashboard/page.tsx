@@ -121,7 +121,7 @@ export default function PartnerDashboard() {
   const [restaurantRating, setRestaurantRating] = useState(0);
   const [restaurantTotalReviews, setRestaurantTotalReviews] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [orderFilter, setOrderFilter] = useState<string>('all');
+  const [orderFilter, setOrderFilter] = useState<string>('active');
   const [menuSearch, setMenuSearch] = useState('');
   const [menuCategoryFilter, setMenuCategoryFilter] = useState<string>('all');
   const [isMenuDialogOpen, setIsMenuDialogOpen] = useState(false);
@@ -1037,6 +1037,7 @@ export default function PartnerDashboard() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Orders</SelectItem>
+                      <SelectItem value="active">Active Orders</SelectItem>
                       <SelectItem value="PENDING">Pending</SelectItem>
                       <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                       <SelectItem value="PREPARING">Preparing</SelectItem>

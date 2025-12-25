@@ -30,7 +30,14 @@ export async function GET(request: Request) {
     };
 
     if (status && status !== 'all') {
-      where.status = status as OrderStatus;
+      // Handle "active" filter to show all non-delivered/non-cancelled orders
+      if (status === 'active') {
+        where.status = {
+          notIn: ['DELIVERED', 'CANCELLED'],
+        };
+      } else {
+        where.status = status as OrderStatus;
+      }
     }
 
     const orders = await prisma.order.findMany({
