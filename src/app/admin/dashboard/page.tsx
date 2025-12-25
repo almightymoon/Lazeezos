@@ -129,7 +129,7 @@ export default function AdminDashboard() {
       icon: Star,
       color: 'from-pink-500 to-rose-600'
     },
-  ];
+  ]);
 
   const revenueData = [
     { month: 'Jan', revenue: 180000, orders: 1200 },

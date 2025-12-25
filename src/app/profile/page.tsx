@@ -507,7 +507,7 @@ export default function ProfilePage() {
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric' 
-                      })}</span>
+                      }) : 'Not set'}</span>
                     </div>
                   )}
                 </div>
@@ -579,6 +579,11 @@ export default function ProfilePage() {
               </div>
             </Card>
           </div>
+          ) : (
+            <div className="text-center py-16">
+              <p className="text-gray-600">No profile data available</p>
+            </div>
+          )
         )}
 
         {/* Settings Tab */}
