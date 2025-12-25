@@ -104,7 +104,12 @@ export default function RiderLandingPage() {
                 <span>Resources</span>
               </Link>
               <Link href="/rider/login" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <span>Login</span>
+                <span>Sign In</span>
+              </Link>
+              <Link href="/rider/signup" className="flex items-center gap-2">
+                <Button className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white">
+                  Sign Up
+                </Button>
               </Link>
             </div>
           </div>

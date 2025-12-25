@@ -84,8 +84,8 @@ export default function RiderDashboard() {
       trend: 'up',
       icon: Clock,
       color: 'from-purple-500 to-pink-600'
-    },
-  ];
+    }
+  ]);
 
   const [earningsData, setEarningsData] = useState<Array<{ day: string; earnings: number; deliveries: number }>>([]);
   const [weeklyPerformance, setWeeklyPerformance] = useState<Array<{ hour: string; orders: number }>>([]);
